@@ -19,7 +19,7 @@ func Get() []Metric {
         var mem runtime.MemStats
         runtime.ReadMemStats(&mem)
         sM = append(sM, gauge(mem.Alloc).NewMetric("Alloc"))
-/*        sM = append(sM, gauge(mem.BuckHashSys).NewMetric("BuckHashSys"))
+        sM = append(sM, gauge(mem.BuckHashSys).NewMetric("BuckHashSys"))
         sM = append(sM, gauge(mem.Frees).NewMetric("Frees"))
         sM = append(sM, gauge(mem.GCCPUFraction).NewMetric("GCCPUFraction"))
         sM = append(sM, gauge(mem.GCSys).NewMetric("GCSys"))
@@ -45,7 +45,7 @@ func Get() []Metric {
         sM = append(sM, gauge(mem.StackSys).NewMetric("StackSys"))
         sM = append(sM, gauge(mem.Sys).NewMetric("Sys"))
         sM = append(sM, gauge(mem.TotalAlloc).NewMetric("TotalAlloc"))
-*/
+
         sM = append(sM, counter(getRequestCount).NewMetric("PollCount"))
         getRequestCount++
 
