@@ -1,6 +1,10 @@
 package main
 
-func main() {}
+import "fmt"
+
+func main() {
+	fmt.Printf("What the Fuck? %.2f \n", 0.123)
+}
 
 /*
 import (

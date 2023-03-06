@@ -1,31 +1,40 @@
 package client
 
 import (
-	"testing"
-
-	"github.com/NevostruevK/metric/internal/util/metrics"
+	"fmt"
+	"net/http"
 )
-
-func TestSendMetric(t *testing.T) {
-	type args struct {
-		sM metrics.Metric
-//sM metrics.Metric
-//		sM metrics.MMM
+func URLHandler(w http.ResponseWriter, r *http.Request) {
+    // извлекаем фрагмент query= из URL запроса search?query=something
+    q := r.URL
+    fmt.Println("request URL",q)
+	ct:= r.Header.Get("Content-Type")
+    fmt.Println("request Header",ct)
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintln(w, "Server response")
 }
+/*
+func TestSendMetric(t *testing.T) {
+	fmt.Println("Start TestSendMetric")
+	http.HandleFunc("/", URLHandler)
+	fmt.Println("Run server")
+    go log.Fatal(http.ListenAndServe(":8080", nil))
+	fmt.Println("After Run server")
+	
 	tests := []struct {
 		name string
-		args args
+		sM []metrics.Metric
 	}{
 		{
 			name: "simple ok",
-//			args : args{metrics.MMM{Name: "Alloc", MmType: "gauge", MgValue: 12345, McValue: 0}},	
-			args : args{metrics.Metric{"Alloc", "gauge",  12345, 0},},	
+			sM: {metrics.Float64ToGauge(1234).NewMetric("GaugeMetric")},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			
-			SendMetric(tt.args.sM)
+			SendMetric(tt.sM)
 		})
 	}
 }
+*/
