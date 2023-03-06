@@ -59,4 +59,4 @@ func (m Metric) ValueToString() string{
 	return fmt.Sprintf("%f", m.gValue)
 //	string(m.GetValue())
 }
-const METRIX_COUNT = 29
+const MetricsCount = 29

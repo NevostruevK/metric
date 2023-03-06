@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 
@@ -9,12 +10,9 @@ import (
 )
 
 //const SERVER_ADDRES = "http://localhost:8080/"
-const SERVER_ADDRES = "http://127.0.0.1:8080/"
+const serverAddress = "http://127.0.0.1:8080/"
 //var client = nil
 
-func HelloFromClient(){
-    fmt.Println("Hello")
-}
 
 func SendMetrics(sM []metrics.Metric, size int){
     for i, m := range sM{
@@ -31,7 +29,7 @@ func SendMetric(sM metrics.Metric) {
 //func SendMetric(sM metrics.Metric) {
 		//sM := metrics.Get()
     // адрес сервиса (как его писать, расскажем в следующем уроке)
-    endpoint := SERVER_ADDRES + "update/"
+    endpoint := serverAddress + "update/"
 //    endpoint := "http://127.0.0.1:8080/"
     // контейнер данных для запроса
 //    data := url.Values{}
@@ -72,8 +70,8 @@ func SendMetric(sM metrics.Metric) {
 */
 //    response := w.Result()
 
-//response, err := client.Do(request)
-    _, err = client.Do(request)
+    response, err := client.Do(request)
+//    _, err = client.Do(request)
     if err != nil {
         fmt.Println("client.Do",err)
         os.Exit(1)
@@ -82,8 +80,9 @@ func SendMetric(sM metrics.Metric) {
 //    fmt.Println("Server response :",response.Status)
     // печатаем код ответа
 //    fmt.Println("Статус-код ", response.Status)
-/*    defer response.Body.Close()
+    defer response.Body.Close()
     // читаем поток из тела ответа
+//    body, err := io.ReadAll(response.Body)
     body, err := io.ReadAll(response.Body)
     if err != nil {
         fmt.Println("io.ReadAll",err)
@@ -91,7 +90,7 @@ func SendMetric(sM metrics.Metric) {
     }
     // и печатаем его
     fmt.Println("BODY: ",string(body))
-*/
+
 
 
 

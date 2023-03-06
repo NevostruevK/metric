@@ -13,7 +13,7 @@ func getRandomValue() Metric{
 }
 
 func Get() []Metric{
-	sM := make([]Metric, 0, METRIX_COUNT) 
+	sM := make([]Metric, 0, MetricsCount) 
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)    
 	sM = append(sM, gauge(mem.Alloc).NewMetric("Alloc"))

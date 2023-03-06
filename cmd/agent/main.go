@@ -7,7 +7,7 @@ import (
 	"github.com/NevostruevK/metric/internal/util/metrics"
 )
 
-const SERVER_ADDRES = "http://localhost:8080/"
+//const SERVER_ADDRES = "http://localhost:8080/"
 //const SERVER_ADDRES = "http://127.0.0.1:8080/"
 const pollInterval = 2
 const reportInterval = 10
@@ -15,8 +15,8 @@ const reportInterval = 10
 func main() {
 	pollTicker := time.NewTicker(pollInterval*time.Second)
 	reportTicker := time.NewTicker(reportInterval*time.Second)
-	inMetrics := make([]metrics.Metric,0,metrics.METRIX_COUNT * (reportInterval/pollInterval+1))
-	outMetrics := make([]metrics.Metric,metrics.METRIX_COUNT * (reportInterval/pollInterval+1))
+	inMetrics := make([]metrics.Metric,0,metrics.MetricsCount * (reportInterval/pollInterval+1))
+	outMetrics := make([]metrics.Metric,metrics.MetricsCount * (reportInterval/pollInterval+1))
 	var size int
 //	var outMetrics []metrics.Metric = nil
 //	metrics.Get()
