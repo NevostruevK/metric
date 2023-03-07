@@ -14,6 +14,8 @@ import (
 const pollInterval = 2
 const reportInterval = 10
 
+
+
 func main() {
         gracefulShutdown := make(chan os.Signal, 1)
         signal.Notify(gracefulShutdown, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
@@ -34,7 +36,7 @@ func main() {
                 case <-gracefulShutdown:
                         pollTicker.Stop()
                         reportTicker.Stop()
-                        fmt.Println("Get Signal")
+                        fmt.Println("Get Signal!")
                         return
                 }
         }
