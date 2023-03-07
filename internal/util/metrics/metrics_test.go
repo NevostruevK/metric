@@ -15,13 +15,13 @@ func TestMetric_String(t *testing.T) {
         }{
                 {
                         name: "simple gauge metric",
-                        m:    metrics.Float64ToGauge(1.23456789).NewMetric("GaugeMetric"),
+                        m:    *metrics.Float64ToGauge(1.23456789).NewMetric("GaugeMetric"),
                         //                      want: "gauge/GaugeMetric/1.23",
                         want: fmt.Sprintf("gauge/GaugeMetric/%f", 1.23456789),
                 },
                 {
                         name: "simple counter metric",
-                        m:    metrics.Int64ToGauge(23456789).NewMetric("CounterMetric"),
+                        m:    *metrics.Int64ToGauge(23456789).NewMetric("CounterMetric"),
                         want: "counter/CounterMetric/23456789",
                 },
         }

@@ -6,11 +6,9 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/NevostruevK/metric/internal/server"
 	"github.com/NevostruevK/metric/internal/util/metrics"
 )
-
-//const SERVER_ADDRES = "http://localhost:8080/"
-const serverAddress = "http://127.0.0.1:8080/"
 
 func SendMetrics(sM []metrics.Metric, size int) {
         for i, m := range sM {
@@ -22,7 +20,7 @@ func SendMetrics(sM []metrics.Metric, size int) {
 }
 
 func SendMetric(sM metrics.Metric) {
-        endpoint := serverAddress + "update/"
+        endpoint := server.ServerAddress + "update/"
         client := &http.Client{}
 
         request, err := http.NewRequest(http.MethodPost, endpoint+sM.String(), nil)
@@ -47,7 +45,7 @@ func SendMetric(sM metrics.Metric) {
                 fmt.Println("client.Do", err)
                 os.Exit(1)
         }
-
+        fmt.Println("AGENT : " ,response.StatusCode)
         defer response.Body.Close()
         body, err := io.ReadAll(response.Body)
         if err != nil {
