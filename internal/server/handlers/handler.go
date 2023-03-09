@@ -28,7 +28,7 @@ func SaveMetricHandler(s *storage.MemStorage) http.HandlerFunc {
 //                m, err := metrics.URLToMetric(url)
                 words := strings.Split(url, "/")
                 if len(words) != 5 {
-                        http.Error(w, "wrong slash count error", http.StatusBadRequest)
+                        http.Error(w, "wrong slash count error", http.StatusNotFound)
                         return
                 }
                 var m *metrics.Metric                
