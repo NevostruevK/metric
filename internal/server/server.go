@@ -19,7 +19,7 @@ func Start(s *storage.MemStorage){
 	}
 	
 	http.HandleFunc("/update/", handlers.SaveMetricHandler(s))
-	http.HandleFunc("/", handlers.NotImplementedHandler)
+	http.HandleFunc("/", http.NotFound)
 
 	log.Fatal(server.ListenAndServe())
 }
