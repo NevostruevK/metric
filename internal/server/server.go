@@ -18,7 +18,8 @@ func Start(s *storage.MemStorage){
 		Addr: ServerAddress,
 	}
 	
-	http.HandleFunc("/", handlers.SaveMetricHandler(s))
+	http.HandleFunc("/update/", handlers.SaveMetricHandler(s))
+	http.HandleFunc("/", handlers.NotImplementedHandler)
 
 	log.Fatal(server.ListenAndServe())
 }

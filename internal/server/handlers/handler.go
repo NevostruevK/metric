@@ -25,7 +25,7 @@ func SaveMetricHandler(s *storage.MemStorage) http.HandlerFunc {
                 url := r.URL.String()
                 m, err := metrics.URLToMetric(url)
                 if err != nil {
-                        http.Error(w, "can't unparse URL", http.StatusBadRequest)
+                        http.Error(w, "can't parse URL", http.StatusNotFound)
                         return
                 }
                 s.SaveMetric(*m)
@@ -34,4 +34,7 @@ func SaveMetricHandler(s *storage.MemStorage) http.HandlerFunc {
                 w.Header().Set("Content-Type", "text/plain")
                 fmt.Fprintln(w, m.String())
         }
+}
+func NotImplementedHandler(w http.ResponseWriter, r *http.Request) {
+        http.Error(w, http.StatusText(http.StatusNotImplemented), http.StatusNotImplemented)
 }
