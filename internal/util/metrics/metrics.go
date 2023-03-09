@@ -3,14 +3,17 @@ package metrics
 import (
 	"errors"
 	"fmt"
-	"strconv"
-	"strings"
 )
 
 const MetricsCount = 29
 
 type gauge float64
 type counter int64
+
+const(
+        Gauge = "gauge"
+        Counter = "counter"
+)
 
 func (g gauge) NewMetric(name string) *Metric {
         return &Metric{name: name, typeM: "gauge", gValue: g}
@@ -39,11 +42,16 @@ type Metric struct {
         cValue counter
 }
 type NewMetricItn interface {
-        NewMetric(s string) Metric
+        NewMetric(name string) Metric
 }
 func (m Metric) Name() string {
         return m.name
 }
+
+func (m Metric) Type() string {
+        return m.typeM
+}
+
 func (m Metric) String() string {
         s := m.typeM + "/" + m.name + "/"
         if m.typeM == "gauge" {
@@ -53,34 +61,11 @@ func (m Metric) String() string {
         return s + fmt.Sprintf("%d", m.cValue)
 }
 
-func URLToMetric(url string) (*Metric, error){
-	words := strings.Split(url, "/")
-	for idx, word := range words {
-		fmt.Printf("Word %d is: %s\n", idx, word)
-	}
-        if len(words) != 5{
-                return nil, errors.New("wrong error")
+func (m Metric) AddMetricValue(new Metric) (Metric, error){
+        if m.typeM != new.typeM{
+                return m, errors.New("error try to add differnt types")
         }
-        if words[0] != "" && words[1] != "update"{
-                return nil, errors.New("wrong prefix")
-        }
-
-        switch words[2]{
-        case "gauge":
-                f, err := strconv.ParseFloat(words[4], 64) 
-                if err != nil{
-                        return nil, errors.New("parse to gauge error")
-                }
-//                return NewGaugeMetric("123", 0.123), nil
-                return NewGaugeMetric(words[3], f), nil
-        
-        case "counter":
-                i, err := strconv.ParseInt(words[4], 10, 64) 
-                if err != nil{
-                        return nil, errors.New("parse to counter error")
-                }
-                return NewCounterMetric(words[3], i), nil
-        default:
-                return nil, errors.New("type error")
-        }
+        m.cValue += new.cValue
+        m.gValue += new.gValue
+        return m, nil
 }
