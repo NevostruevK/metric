@@ -56,7 +56,7 @@ func GetMetricHandler(s storage.Repository) http.HandlerFunc {
                 }
                 w.WriteHeader(http.StatusOK)
                 w.Header().Set("Content-Type", "text/plain")
-                fmt.Fprintln(w, m.String())
+                fmt.Fprintln(w, m.Value())
         }
 }
 
