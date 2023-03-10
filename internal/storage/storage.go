@@ -28,7 +28,7 @@ func (s *MemStorage) AddMetric(m metrics.Metric) {
 }
 func (s *MemStorage) GetMetric(reqType string, name string) (*metrics.Metric, error){
 	if validType := metrics.IsMetricType(reqType); !validType {
-		return nil, fmt.Errorf("%s is not valid metric type",reqType)
+		return nil, fmt.Errorf("type %s is not valid metric type",reqType)
 	}
 	m, ok:= s.data[name]
 	if ok{
@@ -36,7 +36,7 @@ func (s *MemStorage) GetMetric(reqType string, name string) (*metrics.Metric, er
 			return &m, nil
 		}
 	}
-	return nil, fmt.Errorf("Type %s : name %s is not valid metric type",reqType,name)
+	return nil, fmt.Errorf("type %s : name %s is not valid metric type",reqType,name)
 }
 
 func (s *MemStorage) GetAllMetrics() []metrics.Metric{
