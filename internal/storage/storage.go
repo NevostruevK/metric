@@ -7,6 +7,8 @@ import (
 )
 type Repository interface{
 	AddMetric(m metrics.Metric)
+	GetMetric(reqType string, name string) (*metrics.Metric, error)
+	GetAllMetrics() ([]metrics.Metric)
 }
 
 type MemStorage struct {
@@ -23,6 +25,26 @@ func (s *MemStorage) AddMetric(m metrics.Metric) {
 		return
 	}
 	s.data[m.Name()] = m
+}
+func (s *MemStorage) GetMetric(reqType string, name string) (*metrics.Metric, error){
+	if validType := metrics.IsMetricType(reqType); !validType {
+		return nil, fmt.Errorf("%s is not valid metric type",reqType)
+	}
+	m, ok:= s.data[name]
+	if ok{
+		if m.Type() == reqType{
+			return &m, nil
+		}
+	}
+	return nil, fmt.Errorf("Type %s : name %s is not valid metric type",reqType,name)
+}
+
+func (s *MemStorage) GetAllMetrics() []metrics.Metric{
+	sM := make([]metrics.Metric,0,len(s.data))
+	for _, m := range s.data{
+		sM = append(sM, m)
+	}
+	return sM
 }
 
 func (s *MemStorage) ShowMetrics(){

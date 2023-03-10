@@ -14,6 +14,12 @@ const(
         Gauge = "gauge"
         Counter = "counter"
 )
+func IsMetricType(checkType string) bool{
+        if checkType != Gauge && checkType != Counter{
+                return false
+        }
+        return true
+}
 
 func (g gauge) NewMetric(name string) *Metric {
         return &Metric{name: name, typeM: "gauge", gValue: g}
@@ -52,13 +58,15 @@ func (m Metric) Type() string {
         return m.typeM
 }
 
-func (m Metric) String() string {
-        s := m.typeM + "/" + m.name + "/"
+func (m Metric) Value() string {
         if m.typeM == "gauge" {
-                //              return s + fmt.Sprintf("%.2f",float64(m.gValue))
-                return s + fmt.Sprintf("%f", float64(m.gValue))
-        }
-        return s + fmt.Sprintf("%d", m.cValue)
+                return fmt.Sprintf("%f", float64(m.gValue))
+        }        
+        return fmt.Sprintf("%d", m.cValue)
+}
+
+func (m Metric) String() string {
+        return m.Type() + "/" + m.Name() + "/" + m.Value()
 }
 
 func (m Metric) AddMetricValue(new Metric) (Metric, error){
