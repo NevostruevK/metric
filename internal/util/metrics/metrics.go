@@ -60,7 +60,7 @@ func (m Metric) Type() string {
 
 func (m Metric) Value() string {
         if m.typeM == "gauge" {
-                return fmt.Sprintf("%f", float64(m.gValue))
+                return fmt.Sprintf("%.3f", float64(m.gValue))
         }        
         return fmt.Sprintf("%d", m.cValue)
 }
