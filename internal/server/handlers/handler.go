@@ -10,21 +10,12 @@ import (
 	"github.com/NevostruevK/metric/internal/util/metrics"
 )
 
-func URLHandler(w http.ResponseWriter, r *http.Request) {
-        // извлекаем фрагмент query= из URL запроса search?query=something
-        //    q := r.URL
-        //    fmt.Println("request URL",q)
-        //      ct:= r.Header.Get("Content-Type")
-        //    fmt.Println("request Header",ct)
-        w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-        w.WriteHeader(http.StatusOK)
-        fmt.Fprintln(w, "Server response")
-}
-
-func SaveMetricHandler(s *storage.MemStorage) http.HandlerFunc {
-        return func(w http.ResponseWriter, r *http.Request) {
+//func SaveMetricHandler(s *storage.MemStorage) http.HandlerFunc {
+func AddMetricHandler(s storage.Repository) http.HandlerFunc {
+                return func(w http.ResponseWriter, r *http.Request) {
 
                 url := r.URL.String()
+                fmt.Println("Get URL: ",url)
 //                m, err := metrics.URLToMetric(url)
                 words := strings.Split(url, "/")
                 if len(words) != 5 {
@@ -53,13 +44,10 @@ func SaveMetricHandler(s *storage.MemStorage) http.HandlerFunc {
                         return
                 }
                 
-                s.SaveMetric(*m)
+                s.AddMetric(*m)
 
                 w.WriteHeader(http.StatusOK)
                 w.Header().Set("Content-Type", "text/plain")
                 fmt.Fprintln(w, m.String())
         }
-}
-func NotImplementedHandler(w http.ResponseWriter, r *http.Request) {
-        http.Error(w, http.StatusText(http.StatusNotImplemented), http.StatusNotImplemented)
 }

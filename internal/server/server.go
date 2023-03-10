@@ -13,12 +13,12 @@ const ServerAddress = "127.0.0.1:8080"
 
 
 
-func Start(s *storage.MemStorage){
+func Start(s storage.Repository){
 		server := &http.Server{
 		Addr: ServerAddress,
 	}
 	
-	http.HandleFunc("/update/", handlers.SaveMetricHandler(s))
+	http.HandleFunc("/update/", handlers.AddMetricHandler(s))
 	http.HandleFunc("/", http.NotFound)
 
 	log.Fatal(server.ListenAndServe())
