@@ -18,7 +18,7 @@ func TestMetric_String(t *testing.T) {
 			name: "simple gauge metric",
 			m:    *metrics.Float64ToGauge(1.23456789).NewMetric("GaugeMetric"),
 			//                      want: "gauge/GaugeMetric/1.23",
-			want: fmt.Sprintf("gauge/GaugeMetric/%f", 1.23456789),
+			want: fmt.Sprintf("gauge/GaugeMetric/%.3f",1.23456789),
 		},
 		{
 			name: "simple counter metric",
