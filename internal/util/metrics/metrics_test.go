@@ -16,13 +16,12 @@ func TestMetric_String(t *testing.T) {
 	}{
 		{
 			name: "simple gauge metric",
-			m:    *metrics.Float64ToGauge(1.23456789).NewMetric("GaugeMetric"),
-			//                      want: "gauge/GaugeMetric/1.23",
-			want: fmt.Sprintf("gauge/GaugeMetric/%.3f",1.23456789),
+			m:    *metrics.NewGaugeMetric("GaugeMetric", 1.23456789),
+			want: fmt.Sprintf("gauge/GaugeMetric/%.3f", 1.23456789),
 		},
 		{
 			name: "simple counter metric",
-			m:    *metrics.Int64ToGauge(23456789).NewMetric("CounterMetric"),
+			m:    *metrics.NewCounterMetric("CounterMetric", 23456789),
 			want: "counter/CounterMetric/23456789",
 		},
 	}
@@ -44,20 +43,19 @@ func TestMetric_AddMetricValue(t *testing.T) {
 		wantErr bool
 	}{
 		{
-                        name:    "simple ok counter",
-                        m:       *metrics.NewCounterMetric("okCounter 1+5",1), 
-                        new:     *metrics.NewCounterMetric("add 5",5), 
-                        want:    *metrics.NewCounterMetric("okCounter 1+5",6), 
-                        wantErr: false,
-                 },
-                 {
-                        name:    "simple err different types",
-                        m:       *metrics.NewCounterMetric("errCounter 1+5",1), 
-                        new:     *metrics.NewGaugeMetric("add 5",5), 
-                        want:    *metrics.NewCounterMetric("errCounter 1+5",1), 
-                        wantErr: true,
-                 },
-  
+			name:    "simple ok counter",
+			m:       *metrics.NewCounterMetric("okCounter 1+5", 1),
+			new:     *metrics.NewCounterMetric("add 5", 5),
+			want:    *metrics.NewCounterMetric("okCounter 1+5", 6),
+			wantErr: false,
+		},
+		{
+			name:    "simple err different types",
+			m:       *metrics.NewCounterMetric("errCounter 1+5", 1),
+			new:     *metrics.NewGaugeMetric("add 5", 5),
+			want:    *metrics.NewCounterMetric("errCounter 1+5", 1),
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
