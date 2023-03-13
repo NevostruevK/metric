@@ -48,13 +48,13 @@ func NewCounterMetric(name string, i int64) *Metric {
 }
 func NewValueMetric(name string, typeM string, value string) (*Metric, error) {
 	switch typeM {
-	case "gauge":
+	case Gauge:
 		f, err := strconv.ParseFloat(value, 64)
 		if err != nil {
 			return nil, errors.New("convert to gauge with an error")
 		}
 		return NewGaugeMetric(name, f), nil
-	case "counter":
+	case Counter:
 		i, err := strconv.ParseInt(value, 10, 64)
 		if err != nil {
 			return nil, errors.New("convert to counter with an error")
@@ -74,7 +74,7 @@ func (m Metric) Type() string {
 }
 
 func (m Metric) Value() string {
-	if m.typeM == "gauge" {
+	if m.typeM == Gauge {
 		return fmt.Sprintf("%.3f", float64(m.gValue))
 	}
 	return fmt.Sprintf("%d", m.cValue)
@@ -86,7 +86,7 @@ func (m Metric) String() string {
 
 func (m Metric) AddMetricValue(new Metric) (Metric, error) {
 	if m.typeM != new.typeM {
-		return m, errors.New("error: try to add differnt types")
+		return m, errors.New("error: try to add different types")
 	}
 	m.cValue += new.cValue
 	m.gValue += new.gValue
