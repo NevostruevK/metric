@@ -18,13 +18,13 @@ func GetAllMetricsHandler(s storage.Repository) http.HandlerFunc {
 		//создаем html-шаблон
 		tmpl, err := template.ParseFiles(path)
 		if err != nil {
-			http.Error(w, err.Error(), 400)
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 		//исполняем именованный шаблон "Metric", передавая туда массив со списком метрик
 		err = tmpl.ExecuteTemplate(w, "Metric", sm)
 		if err != nil {
-			http.Error(w, err.Error(), 400)
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 	}
