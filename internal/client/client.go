@@ -14,15 +14,11 @@ type client struct {
 	*http.Client
 }
 
-//func SendMetrics(sM []metrics.Metric, size int) {
 func SendMetrics(sM []metrics.Metric) {
 		c := &client{&http.Client{}}
 
 	for _, m := range sM {
 		c.SendMetric(m)
-//		if i >= (size - 1) {
-//			break
-//		}
 	}
 }
 
