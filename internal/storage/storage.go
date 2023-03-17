@@ -5,42 +5,52 @@ import (
 
 	"github.com/NevostruevK/metric/internal/util/metrics"
 )
+type RepositoryData interface{
+	Name() string
+	Type() string
+}
+
 type Repository interface{
-	AddMetric(m metrics.Metric)
-	GetMetric(reqType string, name string) (*metrics.Metric, error)
-	GetAllMetrics() ([]metrics.Metric)
+	AddMetric(RepositoryData)
+	GetMetric(reqType string, name string) (RepositoryData, error)
+	GetAllMetrics() ([]RepositoryData)
 }
 
 type MemStorage struct {
-	data map[string]metrics.Metric
+	data map[string]RepositoryData
 }
 
 func NewMemStorage() *MemStorage{
-	return &MemStorage{data: make(map[string]metrics.Metric)}
+	return &MemStorage{data: make(map[string]RepositoryData)}
 }
 
-func (s *MemStorage) AddMetric(m metrics.Metric) {
-	if m.Type() == metrics.Counter{
-		s.data[m.Name()], _ = m.AddMetricValue(s.data[m.Name()])
-		return
+func (s *MemStorage) AddMetric(rt RepositoryData) {
+	m, ok := rt.(*metrics.Metric)
+	if ok && m.Type() == metrics.Counter{
+		saved, ok := s.data[rt.Name()].(*metrics.Metric)
+		if ok{
+			s.data[rt.Name()], _ = m.AddMetricValue(*saved)
+			return
+		}
 	}
-	s.data[m.Name()] = m
+	s.data[rt.Name()] = rt
 }
-func (s *MemStorage) GetMetric(reqType string, name string) (*metrics.Metric, error){
+
+func (s *MemStorage) GetMetric(reqType string, name string) (RepositoryData, error){
 	if validType := metrics.IsMetricType(reqType); !validType {
 		return nil, fmt.Errorf("type %s is not valid metric type",reqType)
 	}
 	m, ok:= s.data[name]
 	if ok{
 		if m.Type() == reqType{
-			return &m, nil
+			return m, nil
 		}
 	}
 	return nil, fmt.Errorf("type %s : name %s is not valid metric type",reqType,name)
 }
 
-func (s *MemStorage) GetAllMetrics() []metrics.Metric{
-	sM := make([]metrics.Metric,0,len(s.data))
+func (s *MemStorage) GetAllMetrics() []RepositoryData{
+	sM := make([]RepositoryData,0,len(s.data))
 	for _, m := range s.data{
 		sM = append(sM, m)
 	}
@@ -49,6 +59,6 @@ func (s *MemStorage) GetAllMetrics() []metrics.Metric{
 
 func (s *MemStorage) ShowMetrics(){
 	for i, m := range s.data{
-		fmt.Println(i, m.String())
+		fmt.Println(i, m)
 	}
 }

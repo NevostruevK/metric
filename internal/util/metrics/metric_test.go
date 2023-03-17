@@ -37,23 +37,23 @@ func TestMetric_String(t *testing.T) {
 func TestMetric_AddMetricValue(t *testing.T) {
 	tests := []struct {
 		name    string
-		m       metrics.Metric
+		m       *metrics.Metric
 		new     metrics.Metric
-		want    metrics.Metric
+		want    *metrics.Metric
 		wantErr bool
 	}{
 		{
 			name:    "simple ok counter",
-			m:       *metrics.NewCounterMetric("okCounter 1+5", 1),
+			m:       metrics.NewCounterMetric("okCounter 1+5", 1),
 			new:     *metrics.NewCounterMetric("add 5", 5),
-			want:    *metrics.NewCounterMetric("okCounter 1+5", 6),
+			want:    metrics.NewCounterMetric("okCounter 1+5", 6),
 			wantErr: false,
 		},
 		{
 			name:    "simple err different types",
-			m:       *metrics.NewCounterMetric("errCounter 1+5", 1),
+			m:       metrics.NewCounterMetric("errCounter 1+5", 1),
 			new:     *metrics.NewGaugeMetric("add 5", 5),
-			want:    *metrics.NewCounterMetric("errCounter 1+5", 1),
+			want:    metrics.NewCounterMetric("errCounter 1+5", 1),
 			wantErr: true,
 		},
 	}

@@ -43,14 +43,19 @@ func GetMetricHandler(s storage.Repository) http.HandlerFunc {
 			return
 		}
 
-		m, err := s.GetMetric(typeM, name)
+		rt, err := s.GetMetric(typeM, name)
 		if err != nil {
 			http.Error(w, "Type "+typeM+", Name "+name+" not found", http.StatusNotFound)
 			return
 		}
+		m, ok := rt.(*metrics.Metric)
+		if !ok{
+			http.Error(w, "Type "+typeM+", Name "+name+" is not a metric type", http.StatusNotFound)
+			return
+		}
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "text/plain")
-		fmt.Fprintln(w, m.Value())
+		fmt.Fprintln(w, m.StringValue())
 	}
 }
 
@@ -76,7 +81,7 @@ func AddMetricHandler(s storage.Repository) http.HandlerFunc {
 
 		}
 
-		s.AddMetric(*m)
+		s.AddMetric(m)
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "text/plain")
 		fmt.Fprintln(w, m.String())
