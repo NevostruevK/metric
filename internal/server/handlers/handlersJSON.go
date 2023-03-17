@@ -91,7 +91,7 @@ func AddMetricJSONHandler(s storage.Repository) http.HandlerFunc {
 	}
 }
 
-func ListenPOSTDefaultHandler() http.HandlerFunc {
+func ListenPOSTDefaultHandler(s storage.Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		url := r.URL.Path
 
