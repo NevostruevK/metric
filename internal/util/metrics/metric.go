@@ -7,18 +7,18 @@ import (
 )
 
 type Metric struct {
-	name   string
-	typeM  string
-	gValue gauge
-	cValue counter
+	MName   string	`json:"id"`
+	MType  string	`json:"type"`
+	GValue gauge	`json:"delta,omitempty"`
+	CValue counter	`json:"value,omitempty"`
 }
 
 func NewGaugeMetric(name string, f float64) *Metric {
-	return &Metric{name: name, typeM: Gauge, gValue: gauge(f)}
+	return &Metric{MName: name, MType: Gauge, GValue: gauge(f)}
 }
 
 func NewCounterMetric(name string, i int64) *Metric {
-	return &Metric{name: name, typeM: Counter, cValue: counter(i)}
+	return &Metric{MName: name, MType: Counter, CValue: counter(i)}
 }
 
 func (m *Metric) NewGaugeMetric(name string, value float64)  MetricCreater{
@@ -49,19 +49,19 @@ func NewValueMetric(name string, typeM string, value string) (*Metric, error) {
 }
 
 func (m Metric) Name() string {
-	return m.name
+	return m.MName
 }
 
 func (m Metric) Type() string {
-	return m.typeM
+	return m.MType
 }
 
 
 func (m Metric) StringValue() string {
-	if m.typeM == Gauge {
-		return fmt.Sprintf("%.3f", float64(m.gValue))
+	if m.MType == Gauge {
+		return fmt.Sprintf("%.3f", float64(m.GValue))
 	}
-	return fmt.Sprintf("%d", m.cValue)
+	return fmt.Sprintf("%d", m.CValue)
 }
 
 func (m Metric) String() string {
@@ -69,10 +69,10 @@ func (m Metric) String() string {
 }
 
 func (m *Metric) AddMetricValue(new Metric) (*Metric, error) {
-	if m.typeM != new.typeM {
+	if m.MType != new.MType {
 		return m, errors.New("error: try to add different types")
 	}
-	m.cValue += new.cValue
-	m.gValue += new.gValue
+	m.CValue += new.CValue
+	m.GValue += new.GValue
 	return m, nil
 }

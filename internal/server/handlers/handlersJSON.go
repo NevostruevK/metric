@@ -49,7 +49,7 @@ func GetMetricJSONHandler(s storage.Repository) http.HandlerFunc {
 		if !ok{
 			return
 		}
-
+		fmt.Println("Get metric value",m)
 		rt, err := s.GetMetric(m.MType, m.ID)
 		if err != nil {
 			http.Error(w, "Type "+m.MType+", id "+m.ID+" not found", http.StatusNotFound)
@@ -83,6 +83,7 @@ func AddMetricJSONHandler(s storage.Repository) http.HandlerFunc {
 		if !ok{
 			return
 		}
+		fmt.Println("Add metric value",*m)
 
 		s.AddMetric(*m)
 		w.WriteHeader(http.StatusOK)
@@ -94,7 +95,7 @@ func AddMetricJSONHandler(s storage.Repository) http.HandlerFunc {
 func ListenPOSTDefaultHandler(s storage.Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		url := r.URL.Path
-
+		fmt.Println("ListenPOSTDefaultHandle : ",url)
 		w.Header().Set("Content-Type", "text/plain")
 		http.Error(w, "ListenPOSTDefaultHandle : "+url, http.StatusNotFound)
 	}
