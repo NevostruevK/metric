@@ -56,7 +56,7 @@ func (c *clientText) SendMetric(){
 	request.Header.Set("Content-Type", "text/plain")
 	response, err := c.client.Do(request)
 	if err != nil {
-		fmt.Println("Send request error", err)
+		fmt.Println(c.obj," : Send request error", err)
 		return
 	}
 	fmt.Println("response Status code : ", response.StatusCode)

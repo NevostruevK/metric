@@ -53,11 +53,13 @@ func GetMetricJSONHandler(s storage.Repository) http.HandlerFunc {
 		rt, err := s.GetMetric(m.MType, m.ID)
 		if err != nil {
 			http.Error(w, "Type "+m.MType+", id "+m.ID+" not found", http.StatusNotFound)
+			fmt.Println("GetMetricJSONHandler: Type "+m.MType+", id "+m.ID+" not found")
 			return
 		}
 		load, ok := rt.(metrics.Metrics)
 		if !ok{
 			http.Error(w, "Type "+m.MType+", id "+m.ID+" is not a metric type", http.StatusNotFound)
+			fmt.Println("GetMetricJSONHandler: Type "+m.MType+", id "+m.ID+" is not a metric type")
 			return
 		}
 
@@ -86,5 +88,14 @@ func AddMetricJSONHandler(s storage.Repository) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "text/plain")
 		fmt.Fprintln(w, m)
+	}
+}
+
+func ListenPOSTDefaultHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		url := r.URL.Path
+
+		w.Header().Set("Content-Type", "text/plain")
+		http.Error(w, "ListenPOSTDefaultHandle : "+url, http.StatusNotFound)
 	}
 }

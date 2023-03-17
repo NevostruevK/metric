@@ -22,8 +22,8 @@ func main() {
 	reportTicker := time.NewTicker(reportInterval * time.Second)
 
 	sM := make([]metrics.MetricCreater, 0, metrics.MetricsCount*(reportInterval/pollInterval+1))
-//	mInit := metrics.Metric{}
-	mInit := metrics.Metrics{}
+	mInit := metrics.Metric{}
+//	mInit := metrics.Metrics{}
 		
 	for {
 		select {
