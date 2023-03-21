@@ -12,24 +12,29 @@ import (
 	"github.com/NevostruevK/metric/internal/util/metrics"
 )
 
-func SendMetrics(sM []metrics.MetricCreater) {
-	for _, m := range sM {
+func SendMetrics(sM []metrics.MetricCreater) int {
+	client := &http.Client{}
+	for i, m := range sM {
 		switch obj := m.(type){
 		case *metrics.Metric:
-			c := clientText{client: &http.Client{}, obj: *obj}
-			c.SendMetric()
+			c := clientText{client: client, obj: *obj}
+			if err := c.SendMetric(); err!=nil{
+				return i
+			} 
 		case *metrics.Metrics:
-			c := clientJSON{client: &http.Client{}, obj: *obj}
-			c.SendMetric()
+			c := clientJSON{client: client, obj: *obj}
+			if err := c.SendMetric(); err!=nil{
+				return i
+			} 
 		default:
 			fmt.Printf("Type %T not implemented\n", obj)
-			return	
 		}
 	}
+	return len(sM)
 }
 
 type Sender interface{
-	SendMetric()
+	SendMetric() error
 }
 
 type clientText struct {
@@ -42,11 +47,11 @@ type clientJSON struct {
 	obj 	metrics.Metrics
 }
 
-func (c *clientText) SendMetric(){
+func (c *clientText) SendMetric() (err error){
 	endpoint := url.URL{
 		Scheme: "http",
 		Host:   server.ServerAddress,
-		Path:   "/update",
+		Path:   "/update/",
 	}
 	data, err := json.Marshal(c.obj)
 	if err != nil {
@@ -80,7 +85,7 @@ func (c *clientText) SendMetric(){
 		fmt.Println("response Status code : ", response.StatusCode," - ", http.StatusOK)
 		fmt.Println("response body: ", string(body))
 	}
-
+	return nil
 /*	endpoint := url.URL{
 		Scheme: "http",
 		Host:   server.ServerAddress,
@@ -108,11 +113,11 @@ func (c *clientText) SendMetric(){
 */
 }
 
-func (c *clientJSON) SendMetric(){
+func (c *clientJSON) SendMetric() (err error){
 	endpoint := url.URL{
 		Scheme: "http",
 		Host:   server.ServerAddress,
-		Path:   "/update",
+		Path:   "/update/",
 	}
 	data, err := json.Marshal(c.obj)
 	if err != nil {
@@ -142,5 +147,5 @@ func (c *clientJSON) SendMetric(){
 		fmt.Println("response Status code : ", response.StatusCode)
 		fmt.Println("response body: ", string(body))
 	}
-
+	return nil
 }

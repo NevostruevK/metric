@@ -11,6 +11,7 @@ import (
 )
 
 func getMetric(w http.ResponseWriter, r *http.Request) (*metrics.Metrics, bool){
+	w.Header().Set("Content-Type", "application/json")
 	if r.Header.Get("Content-Type") != "application/json"{
 		http.Error(w, "error Content-Type", http.StatusBadRequest)
 		return nil, false
@@ -49,7 +50,7 @@ func GetMetricJSONHandler(s storage.Repository) http.HandlerFunc {
 		if !ok{
 			return
 		}
-		fmt.Println("Get metric value",m)
+//		fmt.Println("Get metric value",m)
 		rt, err := s.GetMetric(m.MType, m.ID)
 		if err != nil {
 			http.Error(w, "Type "+m.MType+", id "+m.ID+" not found", http.StatusNotFound)
@@ -71,7 +72,7 @@ func GetMetricJSONHandler(s storage.Repository) http.HandlerFunc {
 	
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Println(load)
+//		fmt.Println(data)
 		w.Write(data)
 	}
 }
@@ -83,11 +84,12 @@ func AddMetricJSONHandler(s storage.Repository) http.HandlerFunc {
 		if !ok{
 			return
 		}
-		fmt.Println("Add metric value",*m)
+//		fmt.Println("Add metric value",*m)
 
 		s.AddMetric(*m)
 		w.WriteHeader(http.StatusOK)
-		w.Header().Set("Content-Type", "text/plain")
+		w.Header().Set("Content-Type", "application/json")
+//		w.Header().Set("Content-Type", "text/plain")
 		fmt.Fprintln(w, m)
 	}
 }

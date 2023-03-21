@@ -13,6 +13,7 @@ import (
 
 func GetAllMetricsHandler(s storage.Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("GetAllMetricsHandler")
 		sm := s.GetAllMetrics()
 		path := filepath.Join(".", "..", "..", "internal", "files", "html", "getAllMetrics.html")
 		//создаем html-шаблон
@@ -34,6 +35,7 @@ func GetMetricHandler(s storage.Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		typeM := chi.URLParam(r, "typeM")
 		name := chi.URLParam(r, "name")
+		fmt.Println("GetMetricHandler : Type ",typeM,", Name ",name)
 		if typeM == "" || name == "" {
 			http.Error(w, "param(s) is missed", http.StatusBadRequest)
 			return
@@ -46,11 +48,13 @@ func GetMetricHandler(s storage.Repository) http.HandlerFunc {
 		rt, err := s.GetMetric(typeM, name)
 		if err != nil {
 			http.Error(w, "Type "+typeM+", Name "+name+" not found", http.StatusNotFound)
+			fmt.Println("Type ",typeM,", Name ",name," not found")
 			return
 		}
 		m, ok := rt.(*metrics.Metric)
 		if !ok{
 			http.Error(w, "Type "+typeM+", Name "+name+" is not a metric type", http.StatusNotFound)
+			fmt.Println("Type ",typeM,", Name ",name," is not a metric type")
 			return
 		}
 		w.WriteHeader(http.StatusOK)
@@ -64,6 +68,7 @@ func AddMetricHandler(s storage.Repository) http.HandlerFunc {
 		typeM := chi.URLParam(r, "typeM")
 		name := chi.URLParam(r, "name")
 		value := chi.URLParam(r, "value")
+		fmt.Println("AddMetricHandler : Type ",typeM,", Name ",name, " value ",value)
 		if typeM == "" || name == "" || value == "" {
 			http.Error(w, "param is missed", http.StatusBadRequest)
 			return
@@ -77,6 +82,7 @@ func AddMetricHandler(s storage.Repository) http.HandlerFunc {
 		m, err := metrics.NewValueMetric(name, typeM, value)
 		if err != nil {
 			http.Error(w, "convert to "+typeM+" value "+value+" with an error", http.StatusBadRequest)
+			fmt.Println("AddMetricHandler : Type ",typeM,", Name ",name, " value ",value, " with an error")
 			return
 
 		}

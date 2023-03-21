@@ -8,6 +8,7 @@ import (
 type RepositoryData interface{
 	Name() string
 	Type() string
+//	CounterValue() int64
 }
 
 type Repository interface{
@@ -25,7 +26,7 @@ func NewMemStorage() *MemStorage{
 }
 
 func (s *MemStorage) AddMetric(rt RepositoryData) {
-	m, ok := rt.(*metrics.Metric)
+/*	m, ok := rt.(*metrics.Metric)
 	if ok && m.Type() == metrics.Counter{
 		saved, ok := s.data[rt.Name()].(*metrics.Metric)
 		if ok{
@@ -33,6 +34,27 @@ func (s *MemStorage) AddMetric(rt RepositoryData) {
 			return
 		}
 	}
+*/
+	if rt.Type() == metrics.Counter{
+		fmt.Printf("New type %T \n",rt)
+		fmt.Printf("Old type %T \n",s.data[rt.Name()])
+		switch m := rt.(type){
+		case *metrics.Metric:
+			saved, ok := s.data[rt.Name()].(*metrics.Metric)
+			if ok{
+				s.data[rt.Name()], _ = m.AddMetricValue(*saved)
+				return
+			}	
+		case metrics.Metrics:
+			saved, ok := s.data[rt.Name()].(metrics.Metrics)
+			if ok{
+				s.data[rt.Name()], _ = m.AddMetricValue(saved)
+				return
+			}	
+		}
+	}
+
+
 	s.data[rt.Name()] = rt
 }
 

@@ -67,10 +67,14 @@ func Get(cr MetricCreater) []MetricCreater {
 	sM = append(sM, cr.NewGaugeMetric("Sys", float64(mem.Sys)))
 	sM = append(sM, cr.NewGaugeMetric("TotalAlloc", float64(mem.TotalAlloc)))
 
-	sM = append(sM, cr.NewCounterMetric("PollCount", getRequestCount))
 	getRequestCount++
+	sM = append(sM, cr.NewCounterMetric("PollCount", getRequestCount))
 
 	sM = append(sM, cr.NewGaugeMetric("RandomValue", getRandomFloat64()))
 
 	return sM
+}
+
+func ResetCounter(){
+	getRequestCount = 0
 }

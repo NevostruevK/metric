@@ -1,6 +1,9 @@
 package metrics
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 type Metrics struct {
 	ID    string   `json:"id"`              // Имя метрики
@@ -29,4 +32,13 @@ func (m Metrics) StringValue() string {
 		return fmt.Sprintf("%v", m.Value)
 	}
 	return fmt.Sprintf("%v", m.Delta)
+}
+
+func (m *Metrics) AddMetricValue(new Metrics) (Metrics, error) {
+	if m.MType != new.MType {
+		return *m, errors.New("error: try to add different types")
+	}
+	i := *m.Delta + *new.Delta
+	m.Delta = &i
+	return *m, nil
 }

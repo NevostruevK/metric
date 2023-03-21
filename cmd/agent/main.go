@@ -21,7 +21,7 @@ func main() {
 	pollTicker := time.NewTicker(pollInterval * time.Second)
 	reportTicker := time.NewTicker(reportInterval * time.Second)
 
-	sM := make([]metrics.MetricCreater, 0, metrics.MetricsCount*(reportInterval/pollInterval+1))
+	sM := make([]metrics.MetricCreater, 0, metrics.MetricsCount*(reportInterval/pollInterval+2))
 //	mInit := metrics.Metric{}
 	mInit := metrics.Metrics{}
 		
@@ -31,9 +31,15 @@ func main() {
 			fmt.Println("Get Metric")
 			sM = append(sM, metrics.Get(&mInit)...)
 		case <-reportTicker.C:
-			fmt.Println("Send Metric")
-			client.SendMetrics(sM)
-			sM = nil
+			fmt.Println("Send Metric: ",len(sM))
+			sendCount := client.SendMetrics(sM)
+			if sendCount == len(sM){
+				metrics.ResetCounter()
+				sM = nil
+				break
+			}
+			fmt.Println("Send not All metrics ",sendCount," from ", len(sM))
+			sM = sM[sendCount:]
 		case <-gracefulShutdown:
 			pollTicker.Stop()
 			reportTicker.Stop()
