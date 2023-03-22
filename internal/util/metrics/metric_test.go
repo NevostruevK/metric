@@ -34,38 +34,38 @@ func TestMetric_String(t *testing.T) {
 	}
 }
 
-func TestMetric_AddMetricValue(t *testing.T) {
+func TestMetric_AddCounterValue(t *testing.T) {
 	tests := []struct {
 		name    string
 		m       *metrics.Metric
-		new     metrics.Metric
+		value   int64
 		want    *metrics.Metric
 		wantErr bool
 	}{
 		{
 			name:    "simple ok counter",
 			m:       metrics.NewCounterMetric("okCounter 1+5", 1),
-			new:     *metrics.NewCounterMetric("add 5", 5),
+			value:   5,
 			want:    metrics.NewCounterMetric("okCounter 1+5", 6),
 			wantErr: false,
 		},
 		{
-			name:    "simple err different types",
-			m:       metrics.NewCounterMetric("errCounter 1+5", 1),
-			new:     *metrics.NewGaugeMetric("add 5", 5),
-			want:    metrics.NewCounterMetric("errCounter 1+5", 1),
+			name:    "simple err gauge type",
+			m:       metrics.NewGaugeMetric("errGauge 1+5", 1),
+			value:   5,
+			want:    metrics.NewGaugeMetric("errGauge 1+5", 1),
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.m.AddMetricValue(tt.new)
+			err := tt.m.AddCounterValue(tt.value)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Metric.AddMetricValue() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Metric.AddMetricValue() = %v, want %v", got, tt.want)
+			if !reflect.DeepEqual(tt.m, tt.want) {
+				t.Errorf("Metric.AddMetricValue() = %v, want %v", tt.m, tt.want)
 			}
 		})
 	}

@@ -9,9 +9,47 @@ import (
 	"github.com/NevostruevK/metric/internal/storage"
 	"github.com/NevostruevK/metric/internal/util/metrics"
 )
+func GetMetricJSONHandler(s storage.Repository) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 
-func getMetric(w http.ResponseWriter, r *http.Request) (*metrics.Metrics, bool){
+		m, ok:= getRequest(w, r) 
+		if !ok{
+			return
+		}
+
+		rt, err := s.GetMetric(m.MType, m.ID)
+		if err != nil {
+			http.Error(w, "Type "+m.MType+", id "+m.ID+" not found", http.StatusNotFound)
+			fmt.Println("GetMetricJSONHandler: Type "+m.MType+", id "+m.ID+" not found")
+			return
+		}
+
+		load, ok := rt.(*metrics.Metrics)
+		if !ok{
+			http.Error(w, "Type "+m.MType+", id "+m.ID+" is not a metric type", http.StatusNotFound)
+			fmt.Println("GetMetricJSONHandler: Type "+m.MType+", id "+m.ID+" is not a metric type")
+			return
+		}
+		sendResponse(load, w, r)
+	}
+}
+
+func AddMetricJSONHandler(s storage.Repository) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		m, ok:= getRequest(w, r) 
+		if !ok{
+			return
+		}
+		s.AddMetric(m)
+
+		sendResponse(m, w, r)
+	}
+}
+
+func getRequest(w http.ResponseWriter, r *http.Request) (*metrics.Metrics, bool){
 	w.Header().Set("Content-Type", "application/json")
+
 	if r.Header.Get("Content-Type") != "application/json"{
 		http.Error(w, "error Content-Type", http.StatusBadRequest)
 		return nil, false
@@ -43,62 +81,11 @@ func getMetric(w http.ResponseWriter, r *http.Request) (*metrics.Metrics, bool){
 	return &m, true
 }
 
-func GetMetricJSONHandler(s storage.Repository) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-
-		m, ok:= getMetric(w, r) 
-		if !ok{
-			return
-		}
-//		fmt.Println("Get metric value",m)
-		rt, err := s.GetMetric(m.MType, m.ID)
-		if err != nil {
-			http.Error(w, "Type "+m.MType+", id "+m.ID+" not found", http.StatusNotFound)
-			fmt.Println("GetMetricJSONHandler: Type "+m.MType+", id "+m.ID+" not found")
-			return
-		}
-		load, ok := rt.(metrics.Metrics)
-		if !ok{
-			http.Error(w, "Type "+m.MType+", id "+m.ID+" is not a metric type", http.StatusNotFound)
-			fmt.Println("GetMetricJSONHandler: Type "+m.MType+", id "+m.ID+" is not a metric type")
-			return
-		}
-
-		data, err := json.Marshal(load)
+func sendResponse(m *metrics.Metrics, w http.ResponseWriter, r *http.Request){
+		data, err := json.Marshal(*m)
 		if err != nil {
 			http.Error(w, "Can't convert to JSON", http.StatusInternalServerError)
 			return
 		}
-	
-		w.WriteHeader(http.StatusOK)
-		w.Header().Set("Content-Type", "application/json")
-//		fmt.Println(data)
 		w.Write(data)
-	}
-}
-
-func AddMetricJSONHandler(s storage.Repository) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-
-		m, ok:= getMetric(w, r) 
-		if !ok{
-			return
-		}
-//		fmt.Println("Add metric value",*m)
-
-		s.AddMetric(*m)
-		w.WriteHeader(http.StatusOK)
-		w.Header().Set("Content-Type", "application/json")
-//		w.Header().Set("Content-Type", "text/plain")
-		fmt.Fprintln(w, m)
-	}
-}
-
-func ListenPOSTDefaultHandler(s storage.Repository) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		url := r.URL.Path
-		fmt.Println("ListenPOSTDefaultHandle : ",url)
-		w.Header().Set("Content-Type", "text/plain")
-		http.Error(w, "ListenPOSTDefaultHandle : "+url, http.StatusNotFound)
-	}
-}
+}		

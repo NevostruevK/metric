@@ -13,7 +13,6 @@ import (
 
 func GetAllMetricsHandler(s storage.Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("GetAllMetricsHandler")
 		sm := s.GetAllMetrics()
 		path := filepath.Join(".", "..", "..", "internal", "files", "html", "getAllMetrics.html")
 		//создаем html-шаблон
@@ -35,7 +34,6 @@ func GetMetricHandler(s storage.Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		typeM := chi.URLParam(r, "typeM")
 		name := chi.URLParam(r, "name")
-		fmt.Println("GetMetricHandler : Type ",typeM,", Name ",name)
 		if typeM == "" || name == "" {
 			http.Error(w, "param(s) is missed", http.StatusBadRequest)
 			return
@@ -68,7 +66,6 @@ func AddMetricHandler(s storage.Repository) http.HandlerFunc {
 		typeM := chi.URLParam(r, "typeM")
 		name := chi.URLParam(r, "name")
 		value := chi.URLParam(r, "value")
-		fmt.Println("AddMetricHandler : Type ",typeM,", Name ",name, " value ",value)
 		if typeM == "" || name == "" || value == "" {
 			http.Error(w, "param is missed", http.StatusBadRequest)
 			return

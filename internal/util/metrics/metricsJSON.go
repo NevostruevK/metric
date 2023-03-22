@@ -20,25 +20,37 @@ func (m Metrics) NewCounterMetric(id string, i int64) MetricCreater{
 	return &Metrics{ID: id, MType: Counter, Delta: &i}
 }
 
-func (m Metrics) Name() string {
+func (m *Metrics) Name() string {
 	return m.ID
 }
-func (m Metrics) Type() string {
+func (m *Metrics) Type() string {
 	return m.MType
+}
+
+func (m *Metrics) CounterValue() int64 {
+	if m == nil{
+		return 0
+	}
+	return *m.Delta
+}
+
+func (m *Metrics) AddCounterValue(value int64)  error {
+	if m.MType != Counter {
+		return errors.New("error: try to add to not counter metric")
+	}
+	i := *m.Delta + value
+	m.Delta = &i
+	return nil
 }
 
 func (m Metrics) StringValue() string {
 	if m.MType == Gauge {
-		return fmt.Sprintf("%v", m.Value)
+		return fmt.Sprintf("%.3f", float64(*m.Value))
 	}
-	return fmt.Sprintf("%v", m.Delta)
+	return fmt.Sprintf("%d", *m.Delta)
 }
 
-func (m *Metrics) AddMetricValue(new Metrics) (Metrics, error) {
-	if m.MType != new.MType {
-		return *m, errors.New("error: try to add different types")
-	}
-	i := *m.Delta + *new.Delta
-	m.Delta = &i
-	return *m, nil
+func (m Metrics) String() string {
+	
+	return m.Type() + "/" + m.Name() + "/" + m.StringValue()
 }

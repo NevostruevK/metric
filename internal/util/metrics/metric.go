@@ -48,18 +48,26 @@ func NewValueMetric(name string, typeM string, value string) (*Metric, error) {
 	}
 }
 
-func (m Metric) Name() string {
+func (m *Metric) Name() string {
 	return m.MName
 }
 
-func (m Metric) Type() string {
+func (m *Metric) Type() string {
 	return m.MType
 }
-/*
-func (m Metric) CounterValue() int64 {
+
+func (m *Metric) CounterValue() int64 {
 	return int64(m.CValue)
 }
-*/
+
+func (m *Metric) AddCounterValue(value int64)  error {
+	if m.MType != Counter {
+		return errors.New("error: try to add to not counter metric")
+	}
+	m.CValue += counter(value)
+	return nil
+}
+
 
 func (m Metric) StringValue() string {
 	if m.MType == Gauge {
@@ -71,21 +79,3 @@ func (m Metric) StringValue() string {
 func (m Metric) String() string {
 	return m.Type() + "/" + m.Name() + "/" + m.StringValue()
 }
-
-func (m *Metric) AddMetricValue(new Metric) (*Metric, error) {
-	if m.MType != new.MType {
-		return m, errors.New("error: try to add different types")
-	}
-	m.CValue += new.CValue
-	m.GValue += new.GValue
-	return m, nil
-}
-/*
-func (m *Metric) AddMetricValue(new storage.RepositoryData) (storage.RepositoryData, error) {
-	if m.MType != new.Type() {
-		return m, errors.New("error: try to add different types")
-	}
-//	m.CValue += new.CValue
-	m.CValue += counter(new.CounterValue())
-	return m, nil
-}*/
