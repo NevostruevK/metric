@@ -7,10 +7,10 @@ import (
 )
 
 type Metric struct {
-	MName   string	`json:"id"`
-	MType  string	`json:"type"`
-	GValue gauge	`json:"delta,omitempty"`
-	CValue counter	`json:"value,omitempty"`
+	MName   string	
+	MType  string	
+	GValue gauge	
+	CValue counter	
 }
 
 func NewGaugeMetric(name string, f float64) *Metric {

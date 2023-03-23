@@ -8,9 +8,13 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/NevostruevK/metric/internal/server"
 	"github.com/NevostruevK/metric/internal/util/metrics"
 )
+var serverAddress = "127.0.0.1:8080"
+
+func SetAddress(addr string){
+	serverAddress = addr
+}
 
 func SendMetrics(sM []metrics.MetricCreater) int {
 	client := &http.Client{}
@@ -50,7 +54,7 @@ type clientJSON struct {
 func (c *clientText) SendMetric() (err error){
 	endpoint := url.URL{
 		Scheme: "http",
-		Host:   server.ServerAddress,
+		Host:   serverAddress,
 		Path:   "/update/" + c.obj.String(),
 	}
 	request, err := http.NewRequest(http.MethodPost, endpoint.String(), nil)
@@ -78,7 +82,7 @@ func (c *clientText) SendMetric() (err error){
 func (c *clientJSON) SendMetric() (err error){
 	endpoint := url.URL{
 		Scheme: "http",
-		Host:   server.ServerAddress,
+		Host:   serverAddress,
 		Path:   "/update/",
 	}
 	data, err := json.Marshal(c.obj)

@@ -9,17 +9,29 @@ import (
 
 	"github.com/NevostruevK/metric/internal/client"
 	"github.com/NevostruevK/metric/internal/util/metrics"
+	"github.com/caarlos0/env/v7"
 )
 
 const pollInterval = 2
 const reportInterval = 10
 
+type environment struct{
+	Address 		string 			`env:"ADDRESS" envDefault:"127.0.0.1:8080"`
+	ReportInterval	int				`env:"REPORT_INTERVAL" envDefault:"10"`
+	PollInterval	int				`env:"POLL_INTERVAL" envDefault:"2"`
+}
+
 func main() {
 	gracefulShutdown := make(chan os.Signal, 1)
 	signal.Notify(gracefulShutdown, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	
-	pollTicker := time.NewTicker(pollInterval * time.Second)
-	reportTicker := time.NewTicker(reportInterval * time.Second)
+	en := environment{}
+	if err := env.Parse(&en); err!=nil{
+		fmt.Printf("Agent read environment with the error: %+v\n", err)
+	}
+	client.SetAddress(en.Address)
+	pollTicker := time.NewTicker(time.Duration(en.PollInterval) * time.Second)
+	reportTicker := time.NewTicker(time.Duration(en.ReportInterval) * time.Second)
 
 	sM := make([]metrics.MetricCreater, 0, metrics.MetricsCount*(reportInterval/pollInterval+2))
 //	mInit := metrics.Metric{}
