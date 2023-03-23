@@ -12,13 +12,13 @@ import (
 	"github.com/caarlos0/env/v7"
 )
 
-const pollInterval = 2
-const reportInterval = 10
+//const pollInterval = 2
+//const reportInterval = 10
 
 type environment struct{
 	Address 		string 			`env:"ADDRESS" envDefault:"127.0.0.1:8080"`
-	ReportInterval	int				`env:"REPORT_INTERVAL" envDefault:"10"`
-	PollInterval	int				`env:"POLL_INTERVAL" envDefault:"2"`
+	ReportInterval	time.Duration	`env:"REPORT_INTERVAL" envDefault:"10s"`
+	PollInterval	time.Duration	`env:"POLL_INTERVAL" envDefault:"2s"`
 }
 
 func main() {
@@ -29,11 +29,12 @@ func main() {
 	if err := env.Parse(&en); err!=nil{
 		fmt.Printf("Agent read environment with the error: %+v\n", err)
 	}
+	fmt.Printf("Get environment %+v\n",en)
 	client.SetAddress(en.Address)
-	pollTicker := time.NewTicker(time.Duration(en.PollInterval) * time.Second)
-	reportTicker := time.NewTicker(time.Duration(en.ReportInterval) * time.Second)
+	pollTicker := time.NewTicker(en.PollInterval)
+	reportTicker := time.NewTicker(en.ReportInterval)
 
-	sM := make([]metrics.MetricCreater, 0, metrics.MetricsCount*(reportInterval/pollInterval+2))
+	sM := make([]metrics.MetricCreater, 0, metrics.MetricsCount*(en.ReportInterval/en.PollInterval+2))
 //	mInit := metrics.Metric{}
 	mInit := metrics.Metrics{}
 		
