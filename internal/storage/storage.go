@@ -20,10 +20,53 @@ type Repository interface{
 
 type MemStorage struct {
 	data map[string]RepositoryData
+	saver *saver
+	needToSyncWrite bool
 }
 
-func NewMemStorage() *MemStorage{
-	return &MemStorage{data: make(map[string]RepositoryData)}
+func NewMemStorage(restore bool, needToSyncWrite bool, filename string) *MemStorage{
+	data := make(map[string]RepositoryData)
+	if filename == ""{
+		return &MemStorage{data: data, saver: nil, needToSyncWrite: false}		
+	}
+	s, err := NewSaver(filename)
+	if err!=nil{
+		fmt.Printf("Can't write metrics to %s\n",filename)
+		return &MemStorage{data: data, saver: nil, needToSyncWrite: false}	
+	}
+	if restore{
+		l, err := NewLoader(filename)
+		defer l.Close()
+		if err!=nil{
+			fmt.Printf("Can't load metrics from %s\n",filename)
+		}else{
+			for {
+				m, err := l.ReadMetric()
+				if err!=nil{
+					break
+				}
+				data[m.Name()] = m
+			}
+		}
+	}
+	return &MemStorage{data: data, saver: s, needToSyncWrite: needToSyncWrite,}
+}
+func (s *MemStorage) SaveAllIntoFile() (int,error){
+	if s.saver == nil{
+		return 0, fmt.Errorf("can't save metrics into file, saver wasn't initialized")
+	}
+	count := 0
+	for _, m := range s.data{
+		if err := s.saver.WriteMetric(m); err!=nil{
+			return count, fmt.Errorf("can't save metric into file, encoder error")
+		}
+		count++
+	}
+	return count, nil
+}
+
+func (s *MemStorage) Close(){
+	s.saver.Close()
 }
 
 func (s *MemStorage) AddMetric(rt RepositoryData) {
@@ -31,6 +74,9 @@ func (s *MemStorage) AddMetric(rt RepositoryData) {
 		rt.AddCounterValue(s.data[rt.Name()].CounterValue())
 	}
 	s.data[rt.Name()] = rt
+	if (s.needToSyncWrite){
+		s.saver.WriteMetric(rt)
+	}
 }
 
 func (s *MemStorage) GetMetric(reqType string, name string) (RepositoryData, error){

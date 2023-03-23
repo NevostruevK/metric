@@ -54,9 +54,9 @@ func main() {
 			fmt.Println("Send not All metrics ",sendCount," from ", len(sM))
 			sM = sM[sendCount:]
 		case <-gracefulShutdown:
+			fmt.Println("Get Agent Signal!")
 			pollTicker.Stop()
 			reportTicker.Stop()
-			fmt.Println("Get Agent Signal!")
 			return
 		}
 	}

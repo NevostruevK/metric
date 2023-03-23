@@ -29,7 +29,7 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string) (int, s
 }
 
 func TestRouter(t *testing.T) {
-	s := storage.NewMemStorage()
+	s := storage.NewMemStorage(false, false, "")
 	r := chi.NewRouter()
 
 	r.Post("/update/{typeM}/{name}/{value}", AddMetricHandler(s))
