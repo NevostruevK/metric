@@ -36,10 +36,10 @@ func NewMemStorage(restore bool, needToSyncWrite bool, filename string) *MemStor
 	}
 	if restore{
 		l, err := NewLoader(filename)
-		defer l.Close()
 		if err!=nil{
 			fmt.Printf("Can't load metrics from %s\n",filename)
 		}else{
+			defer l.Close()
 			for {
 				m, err := l.ReadMetric()
 				if err!=nil{
