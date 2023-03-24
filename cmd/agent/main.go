@@ -8,33 +8,22 @@ import (
 	"time"
 
 	"github.com/NevostruevK/metric/internal/client"
+	"github.com/NevostruevK/metric/internal/util/commands"
 	"github.com/NevostruevK/metric/internal/util/metrics"
-	"github.com/caarlos0/env/v7"
 )
-
-//const pollInterval = 2
-//const reportInterval = 10
-
-type environment struct{
-	Address 		string 			`env:"ADDRESS" envDefault:"127.0.0.1:8080"`
-	ReportInterval	time.Duration	`env:"REPORT_INTERVAL" envDefault:"10s"`
-	PollInterval	time.Duration	`env:"POLL_INTERVAL" envDefault:"2s"`
-}
 
 func main() {
 	gracefulShutdown := make(chan os.Signal, 1)
 	signal.Notify(gracefulShutdown, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	
-	en := environment{}
-	if err := env.Parse(&en); err!=nil{
-		fmt.Printf("Agent read environment with the error: %+v\n", err)
-	}
-	fmt.Printf("Get environment %+v\n",en)
-	client.SetAddress(en.Address)
-	pollTicker := time.NewTicker(en.PollInterval)
-	reportTicker := time.NewTicker(en.ReportInterval)
+	cmd := commands.GetAgentCommands()
 
-	sM := make([]metrics.MetricCreater, 0, metrics.MetricsCount*(en.ReportInterval/en.PollInterval+2))
+	fmt.Printf("Agent get command %+v\n",cmd)
+	client.SetAddress(cmd.Address)
+	pollTicker := time.NewTicker(cmd.PollInterval)
+	reportTicker := time.NewTicker(cmd.ReportInterval)
+
+	sM := make([]metrics.MetricCreater, 0, metrics.MetricsCount*(cmd.ReportInterval/cmd.PollInterval+2))
 //	mInit := metrics.Metric{}
 	mInit := metrics.Metrics{}
 		

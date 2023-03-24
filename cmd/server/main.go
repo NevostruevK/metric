@@ -9,27 +9,19 @@ import (
 
 	"github.com/NevostruevK/metric/internal/server"
 	"github.com/NevostruevK/metric/internal/storage"
-	"github.com/caarlos0/env/v7"
+	"github.com/NevostruevK/metric/internal/util/commands"
 )
-
-type environment struct{
-	Address 		string 			`env:"ADDRESS" envDefault:"127.0.0.1:8080"`
-	StoreFile		string  		`env:"STORE_FILE" envDefault:"/tmp/devops-metrics-db.json"`
-	StoreInterval	time.Duration  	`env:"STORE_INTERVAL" envDefault:"300s"`
-	Restore			bool			`env:"RESTORE" envDefault:"true"`
-}
 
 func main() {
 	gracefulShutdown := make(chan os.Signal, 1)
 	signal.Notify(gracefulShutdown, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
-	en := environment{}
-	if err := env.Parse(&en); err != nil{
-		fmt.Printf("Server read environment with the error: %+v\n", err)
-	}
-	server.SetAddress(en.Address)
-	st := storage.NewMemStorage(en.Restore, en.StoreInterval==0, en.StoreFile)
-	storeInterval := time.NewTicker(en.StoreInterval)
+	cmd := commands.GetServerCommands()
+	fmt.Printf("Server get command %+v\n",cmd)
+
+	server.SetAddress(cmd.Address)
+	st := storage.NewMemStorage(cmd.Restore, cmd.StoreInterval==0, cmd.StoreFile)
+	storeInterval := time.NewTicker(cmd.StoreInterval)
 
 	go server.Start(st)
 
