@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/NevostruevK/metric/internal/storage"
+	"github.com/NevostruevK/metric/internal/util/fgzip"
 	"github.com/NevostruevK/metric/internal/util/metrics"
 )
 func GetMetricJSONHandler(s storage.Repository) http.HandlerFunc {
@@ -50,7 +52,8 @@ func AddMetricJSONHandler(s storage.Repository) http.HandlerFunc {
 func getRequest(w http.ResponseWriter, r *http.Request) (*metrics.Metrics, bool){
 	w.Header().Set("Content-Type", "application/json")
 
-	if r.Header.Get("Content-Type") != "application/json"{
+	if !strings.Contains(r.Header.Get("Content-Type"), "application/json") {
+//		if r.Header.Get("Content-Type") != "application/json"{
 		http.Error(w, "error Content-Type", http.StatusBadRequest)
 		return nil, false
 	}
@@ -61,7 +64,16 @@ func getRequest(w http.ResponseWriter, r *http.Request) (*metrics.Metrics, bool)
 		http.Error(w, "read body request with an error: ", http.StatusBadRequest)
 		return nil, false
 	}	
-
+	if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
+//		if r.Header.Get("Content-Encoding") != "gzip"{
+//		fmt.Println("find Content-Encoding gzip")
+		b, err = fgzip.Decompress(b)
+		if err != nil{
+			http.Error(w, "can't decompress data: ", http.StatusBadRequest)
+			return nil, false		
+		} 
+	}
+//	fmt.Println("can't find Countent Encoding gzip")
 	m := metrics.Metrics{}
 	err = json.Unmarshal(b, &m) 
 	if err != nil{
@@ -87,5 +99,13 @@ func sendResponse(m *metrics.Metrics, w http.ResponseWriter, r *http.Request){
 			http.Error(w, "Can't convert to JSON", http.StatusInternalServerError)
 			return
 		}
+        if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+			data, err = fgzip.Compress(data)
+			if err != nil{
+				fmt.Println("can't compress data", err)
+			}else{
+				w.Header().Add("Content-Encoding", "gzip")
+			}
+		}	
 		w.Write(data)
 }		

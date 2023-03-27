@@ -7,7 +7,9 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 
+	"github.com/NevostruevK/metric/internal/util/fgzip"
 	"github.com/NevostruevK/metric/internal/util/metrics"
 )
 var serverAddress = "127.0.0.1:8080"
@@ -79,6 +81,8 @@ func (c *clientText) SendMetric() (err error){
 	return nil
 }
 
+
+
 func (c *clientJSON) SendMetric() (err error){
 	endpoint := url.URL{
 		Scheme: "http",
@@ -90,12 +94,21 @@ func (c *clientJSON) SendMetric() (err error){
 		fmt.Println("json.Marshal", err)
 		return
 	}
+//	data, errCompress := fgzip.Compress(data)
+
 	request, err := http.NewRequest(http.MethodPost, endpoint.String(), bytes.NewBuffer(data))
 	if err != nil {
 		fmt.Println("http.NewRequest", err)
 		return
 	}
 	request.Header.Set("Content-Type", "application/json")
+
+/*	if errCompress != nil{
+		fmt.Println("can't compress data", err)
+	}else{
+		request.Header.Add("Content-Encoding", "gzip")
+	}
+*/
 	response, err := c.client.Do(request)
 	if err != nil {
 		fmt.Println("Send request error", err)
@@ -107,6 +120,16 @@ func (c *clientJSON) SendMetric() (err error){
 		fmt.Println("io.ReadAll", err)
 		return
 	}
+	if strings.Contains(response.Header.Get("Content-Encoding"), "gzip") {
+//		if response.Header.Get("Content-Encoding") == ("gzip"){
+		body, err = fgzip.Decompress(body)
+		if err != nil{
+			fmt.Println("can't decompress data", err)
+			return
+		}
+	}
+//	body, err := decompressGzip(response.Body)
+
 	if response.StatusCode != http.StatusOK{
 		fmt.Println("response Status code : ", response.StatusCode)
 		fmt.Println("response body: ", string(body))
