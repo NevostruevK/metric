@@ -21,9 +21,13 @@ func Start(s storage.Repository) {
 
 	r := chi.NewRouter()
 	
+	handler := handlers.CompressHandle(r)
+	handler = handlers.DecompressHanlder(handler)
+
 	server := &http.Server{
 		Addr: serverAddress,
-		Handler: r,
+//		Handler: handlers.DecompressHanlder(r),
+		Handler: handler,
 	}
 
 	r.Post("/update/", handlers.AddMetricJSONHandler(s))
