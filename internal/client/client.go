@@ -22,7 +22,7 @@ func SendMetrics(sM []metrics.MetricCreater) int {
 	client := &http.Client{}
 	for i, m := range sM {
 		switch obj := m.(type){
-		case *metrics.Metric:
+		case *metrics.BasicMetric:
 			c := clientText{client: client, obj: *obj}
 			if err := c.SendMetric(); err!=nil{
 				return i
@@ -45,7 +45,7 @@ type Sender interface{
 
 type clientText struct {
 	client  *http.Client
-	obj 	metrics.Metric
+	obj 	metrics.BasicMetric
 }
 
 type clientJSON struct {
@@ -61,27 +61,26 @@ func (c *clientText) SendMetric() (err error){
 	}
 	request, err := http.NewRequest(http.MethodPost, endpoint.String(), nil)
 	if err != nil {
-		fmt.Println("http.NewRequest", err)
+		fmt.Println("SendMetric(Text): create request error: ", err)
 		return
 	}
 	request.Header.Set("Content-Type", "text/plain")
 	response, err := c.client.Do(request)
 	if err != nil {
-		fmt.Println(c.obj," : Send request error", err)
+		fmt.Println("SendMetric(Text): send request error: ", err)
 		return
 	}
-	fmt.Println("response Status code : ", response.StatusCode)
 	defer response.Body.Close()
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
-		fmt.Println("io.ReadAll", err)
+		fmt.Println("SendMetric(Text): read body error: ", err)
 		return
 	}
-	fmt.Println("response body: ", string(body))
+	if response.StatusCode != http.StatusOK{
+		fmt.Printf("SendMetric(Text): read wrong response Status code: %d body %s\n", response.StatusCode,body)
+	}
 	return nil
 }
-
-
 
 func (c *clientJSON) SendMetric() (err error){
 	endpoint := url.URL{
@@ -91,48 +90,35 @@ func (c *clientJSON) SendMetric() (err error){
 	}
 	data, err := json.Marshal(c.obj)
 	if err != nil {
-		fmt.Println("json.Marshal", err)
+		fmt.Println("SendMetric(JSON): marshal data error: ", err)
 		return
 	}
-//	data, errCompress := fgzip.Compress(data)
-
 	request, err := http.NewRequest(http.MethodPost, endpoint.String(), bytes.NewBuffer(data))
 	if err != nil {
-		fmt.Println("http.NewRequest", err)
+		fmt.Println("SendMetric(JSON): create request error: ", err)
 		return
 	}
 	request.Header.Set("Content-Type", "application/json")
-
-/*	if errCompress != nil{
-		fmt.Println("can't compress data", err)
-	}else{
-		request.Header.Add("Content-Encoding", "gzip")
-	}
-*/
 	response, err := c.client.Do(request)
 	if err != nil {
-		fmt.Println("Send request error", err)
+		fmt.Println("SendMetric(JSON): send request error: ", err)
 		return
 	}
 	defer response.Body.Close()
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
-		fmt.Println("io.ReadAll", err)
+		fmt.Println("SendMetric(JSON): read body error: ", err)
 		return
 	}
 	if strings.Contains(response.Header.Get("Content-Encoding"), "gzip") {
-//		if response.Header.Get("Content-Encoding") == ("gzip"){
 		body, err = fgzip.Decompress(body)
 		if err != nil{
-			fmt.Println("can't decompress data", err)
+			fmt.Println("SendMetric(JSON): decompress data error: ", err)
 			return
 		}
 	}
-//	body, err := decompressGzip(response.Body)
-
 	if response.StatusCode != http.StatusOK{
-		fmt.Println("response Status code : ", response.StatusCode)
-		fmt.Println("response body: ", string(body))
+		fmt.Printf("SendMetric(JSON): read wrong response Status code: %d body %s\n", response.StatusCode,body)
 	}
 	return nil
 }

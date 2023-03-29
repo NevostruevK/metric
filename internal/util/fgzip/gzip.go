@@ -5,15 +5,6 @@ import (
 	"compress/gzip"
 	"fmt"
 )
-func printResult(b bytes.Buffer){
-	var sum int
-	for _, v:= range b.Bytes(){
-		sum += int(v)
-//		data := binary.BigEndian.Uint64(mySlice)
-	}
-	fmt.Printf("Size Sum (%d - %d) \n",b.Len(),sum)
-	fmt.Println("--------------------------------")
-}
 
 func Compress(data []byte) ([]byte, error) {
 	var b bytes.Buffer
@@ -29,8 +20,6 @@ func Compress(data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed compress data: %v", err)
 	}
-//	fmt.Printf("Compressed data %v\n",data)
-//	printResult(b)
 	return b.Bytes(), nil
 }
 
@@ -46,7 +35,5 @@ func Decompress(data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed decompress data: %v", err)
 	}
-//	fmt.Printf("Decompressed data %v\n",data)
-//	printResult(b)
 	return b.Bytes(), nil
 }

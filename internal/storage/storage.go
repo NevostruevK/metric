@@ -8,6 +8,7 @@ import (
 type RepositoryData interface{
 	Name() string
 	Type() string
+	StringValue() string
 	CounterValue() int64
 	AddCounterValue(int64) error
 }

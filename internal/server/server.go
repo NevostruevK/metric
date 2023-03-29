@@ -9,7 +9,6 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-//const ServerAddress = "127.0.0.1:8080"
 var serverAddress = "127.0.0.1:8080"
 
 func SetAddress(addr string){
@@ -26,7 +25,6 @@ func Start(s storage.Repository) {
 
 	server := &http.Server{
 		Addr: serverAddress,
-//		Handler: handlers.DecompressHanlder(r),
 		Handler: handler,
 	}
 

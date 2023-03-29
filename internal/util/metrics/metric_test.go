@@ -11,7 +11,7 @@ import (
 func TestMetric_String(t *testing.T) {
 	tests := []struct {
 		name string
-		m    metrics.Metric
+		m    metrics.BasicMetric
 		want string
 	}{
 		{
@@ -37,9 +37,9 @@ func TestMetric_String(t *testing.T) {
 func TestMetric_AddCounterValue(t *testing.T) {
 	tests := []struct {
 		name    string
-		m       *metrics.Metric
+		m       *metrics.BasicMetric
 		value   int64
-		want    *metrics.Metric
+		want    *metrics.BasicMetric
 		wantErr bool
 	}{
 		{

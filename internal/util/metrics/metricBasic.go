@@ -6,30 +6,30 @@ import (
 	"strconv"
 )
 
-type Metric struct {
+type BasicMetric struct {
 	MName   string	
 	MType  string	
 	GValue gauge	
 	CValue counter	
 }
 
-func NewGaugeMetric(name string, f float64) *Metric {
-	return &Metric{MName: name, MType: Gauge, GValue: gauge(f)}
+func NewGaugeMetric(name string, f float64) *BasicMetric {
+	return &BasicMetric{MName: name, MType: Gauge, GValue: gauge(f)}
 }
 
-func NewCounterMetric(name string, i int64) *Metric {
-	return &Metric{MName: name, MType: Counter, CValue: counter(i)}
+func NewCounterMetric(name string, i int64) *BasicMetric {
+	return &BasicMetric{MName: name, MType: Counter, CValue: counter(i)}
 }
 
-func (m *Metric) NewGaugeMetric(name string, value float64)  MetricCreater{
+func (m *BasicMetric) NewGaugeMetric(name string, value float64)  MetricCreater{
 	return NewGaugeMetric(name, value)
 }
 
-func (m *Metric) NewCounterMetric(name string, value int64)  MetricCreater{
+func (m *BasicMetric) NewCounterMetric(name string, value int64)  MetricCreater{
 	return NewCounterMetric(name, value)
 }
 
-func NewValueMetric(name string, typeM string, value string) (*Metric, error) {
+func NewValueMetric(name string, typeM string, value string) (*BasicMetric, error) {
 	switch typeM {
 	case Gauge:
 		f, err := strconv.ParseFloat(value, 64)
@@ -48,19 +48,19 @@ func NewValueMetric(name string, typeM string, value string) (*Metric, error) {
 	}
 }
 
-func (m *Metric) Name() string {
+func (m *BasicMetric) Name() string {
 	return m.MName
 }
 
-func (m *Metric) Type() string {
+func (m *BasicMetric) Type() string {
 	return m.MType
 }
 
-func (m *Metric) CounterValue() int64 {
+func (m *BasicMetric) CounterValue() int64 {
 	return int64(m.CValue)
 }
 
-func (m *Metric) AddCounterValue(value int64)  error {
+func (m *BasicMetric) AddCounterValue(value int64)  error {
 	if m.MType != Counter {
 		return errors.New("error: try to add to not counter metric")
 	}
@@ -69,13 +69,13 @@ func (m *Metric) AddCounterValue(value int64)  error {
 }
 
 
-func (m Metric) StringValue() string {
+func (m BasicMetric) StringValue() string {
 	if m.MType == Gauge {
 		return fmt.Sprintf("%.3f", float64(m.GValue))
 	}
 	return fmt.Sprintf("%d", m.CValue)
 }
 
-func (m Metric) String() string {
+func (m BasicMetric) String() string {
 	return m.Type() + "/" + m.Name() + "/" + m.StringValue()
 }
