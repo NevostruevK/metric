@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/NevostruevK/metric/internal/storage"
@@ -57,7 +58,7 @@ func GetMetricHandler(s storage.Repository) http.HandlerFunc {
 		}
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "text/plain")
-		w.Write([]byte(rt.StringValue()))
+		fmt.Fprintln(w, rt.StringValue())
 	}
 }
 
@@ -86,6 +87,6 @@ func AddMetricHandler(s storage.Repository) http.HandlerFunc {
 		s.AddMetric(m)
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "text/plain")
-		w.Write([]byte(m.String()))
+		fmt.Fprintln(w, m.String())
 	}
 }
