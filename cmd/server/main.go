@@ -17,10 +17,10 @@ func main() {
 	signal.Notify(gracefulShutdown, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
 	cmd := commands.GetServerCommands()
-	fmt.Printf("Server get command %+v\n",cmd)
+	fmt.Printf("Server get command %+v\n", cmd)
 
 	server.SetAddress(cmd.Address)
-	st := storage.NewMemStorage(cmd.Restore, cmd.StoreInterval==0, cmd.StoreFile)
+	st := storage.NewMemStorage(cmd.Restore, cmd.StoreInterval == 0, cmd.StoreFile)
 	storeInterval := time.NewTicker(cmd.StoreInterval)
 
 	go server.Start(st)
@@ -29,7 +29,7 @@ func main() {
 		select {
 		case <-storeInterval.C:
 			count, err := st.SaveAllIntoFile()
-			fmt.Printf("Saved to file %d metrics, error %v\n",count,err)
+			fmt.Printf("Saved to file %d metrics, error %v\n", count, err)
 		case <-gracefulShutdown:
 			fmt.Println("Server Get Signal!")
 			storeInterval.Stop()

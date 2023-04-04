@@ -11,26 +11,25 @@ import (
 
 var serverAddress = "127.0.0.1:8080"
 
-func SetAddress(addr string){
+func SetAddress(addr string) {
 	serverAddress = addr
 }
-
 
 func Start(s storage.Repository) {
 
 	r := chi.NewRouter()
-	
+
 	handler := handlers.CompressHandle(r)
 	handler = handlers.DecompressHanlder(handler)
 
 	server := &http.Server{
-		Addr: serverAddress,
+		Addr:    serverAddress,
 		Handler: handler,
 	}
 
 	r.Post("/update/", handlers.AddMetricJSONHandler(s))
 	r.Post("/value/", handlers.GetMetricJSONHandler(s))
-	r.Post("/update/{typeM}/{name}/{value}", handlers.AddMetricHandler(s))	
+	r.Post("/update/{typeM}/{name}/{value}", handlers.AddMetricHandler(s))
 	r.Get("/value/{typeM}/{name}", handlers.GetMetricHandler(s))
 	r.Get("/", handlers.GetAllMetricsHandler(s))
 	log.Fatal(server.ListenAndServe())

@@ -23,7 +23,7 @@ func IsMetricType(checkType string) bool {
 	return true
 }
 
-type MetricCreater interface{
+type MetricCreater interface {
 	NewGaugeMetric(name string, value float64) MetricCreater
 	NewCounterMetric(name string, value int64) MetricCreater
 }
@@ -75,6 +75,6 @@ func Get(cr MetricCreater) []MetricCreater {
 	return sM
 }
 
-func ResetCounter(){
+func ResetCounter() {
 	getRequestCount = 0
 }

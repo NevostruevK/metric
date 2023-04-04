@@ -12,11 +12,11 @@ type Metrics struct {
 	Value *float64 `json:"value,omitempty"` // Значение метрики в случае передачи gauge
 }
 
-func (m *Metrics) NewGaugeMetric(id string, f float64) MetricCreater{
+func (m *Metrics) NewGaugeMetric(id string, f float64) MetricCreater {
 	return &Metrics{ID: id, MType: Gauge, Value: &f}
 }
 
-func (m Metrics) NewCounterMetric(id string, i int64) MetricCreater{
+func (m Metrics) NewCounterMetric(id string, i int64) MetricCreater {
 	return &Metrics{ID: id, MType: Counter, Delta: &i}
 }
 
@@ -28,13 +28,13 @@ func (m *Metrics) Type() string {
 }
 
 func (m *Metrics) CounterValue() int64 {
-	if m == nil{
+	if m == nil {
 		return 0
 	}
 	return *m.Delta
 }
 
-func (m *Metrics) AddCounterValue(value int64)  error {
+func (m *Metrics) AddCounterValue(value int64) error {
 	if m.MType != Counter {
 		return errors.New("error: try to add to not counter metric")
 	}
@@ -51,6 +51,6 @@ func (m Metrics) StringValue() string {
 }
 
 func (m Metrics) String() string {
-	
+
 	return m.Type() + "/" + m.Name() + "/" + m.StringValue()
 }

@@ -7,10 +7,10 @@ import (
 )
 
 type BasicMetric struct {
-	MName   string	
-	MType  string	
-	GValue gauge	
-	CValue counter	
+	MName  string
+	MType  string
+	GValue gauge
+	CValue counter
 }
 
 func NewGaugeMetric(name string, f float64) *BasicMetric {
@@ -21,11 +21,11 @@ func NewCounterMetric(name string, i int64) *BasicMetric {
 	return &BasicMetric{MName: name, MType: Counter, CValue: counter(i)}
 }
 
-func (m *BasicMetric) NewGaugeMetric(name string, value float64)  MetricCreater{
+func (m *BasicMetric) NewGaugeMetric(name string, value float64) MetricCreater {
 	return NewGaugeMetric(name, value)
 }
 
-func (m *BasicMetric) NewCounterMetric(name string, value int64)  MetricCreater{
+func (m *BasicMetric) NewCounterMetric(name string, value int64) MetricCreater {
 	return NewCounterMetric(name, value)
 }
 
@@ -60,14 +60,13 @@ func (m *BasicMetric) CounterValue() int64 {
 	return int64(m.CValue)
 }
 
-func (m *BasicMetric) AddCounterValue(value int64)  error {
+func (m *BasicMetric) AddCounterValue(value int64) error {
 	if m.MType != Counter {
 		return errors.New("error: try to add to not counter metric")
 	}
 	m.CValue += counter(value)
 	return nil
 }
-
 
 func (m BasicMetric) StringValue() string {
 	if m.MType == Gauge {
