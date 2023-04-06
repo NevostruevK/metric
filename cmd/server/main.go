@@ -19,11 +19,11 @@ func main() {
 	cmd := commands.GetServerCommands()
 	fmt.Printf("Server get command %+v\n", cmd)
 
-	server.SetAddress(cmd.Address)
+	//	server.SetAddress(cmd.Address)
 	st := storage.NewMemStorage(cmd.Restore, cmd.StoreInterval == 0, cmd.StoreFile)
 	storeInterval := time.NewTicker(cmd.StoreInterval)
 
-	go server.Start(st)
+	go server.Start(st, cmd.Address, cmd.Key)
 
 	for {
 		select {

@@ -9,13 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-var serverAddress = "127.0.0.1:8080"
-
-func SetAddress(addr string) {
-	serverAddress = addr
-}
-
-func Start(s storage.Repository) {
+func Start(s storage.Repository, address, hashKey string) {
 
 	r := chi.NewRouter()
 
@@ -23,12 +17,12 @@ func Start(s storage.Repository) {
 	handler = handlers.DecompressHanlder(handler)
 
 	server := &http.Server{
-		Addr:    serverAddress,
+		Addr:    address,
 		Handler: handler,
 	}
 
-	r.Post("/update/", handlers.AddMetricJSONHandler(s))
-	r.Post("/value/", handlers.GetMetricJSONHandler(s))
+	r.Post("/update/", handlers.AddMetricJSONHandler(s, hashKey))
+	r.Post("/value/", handlers.GetMetricJSONHandler(s, hashKey))
 	r.Post("/update/{typeM}/{name}/{value}", handlers.AddMetricHandler(s))
 	r.Get("/value/{typeM}/{name}", handlers.GetMetricHandler(s))
 	r.Get("/", handlers.GetAllMetricsHandler(s))

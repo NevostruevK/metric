@@ -19,7 +19,8 @@ func main() {
 	cmd := commands.GetAgentCommands()
 
 	fmt.Printf("Agent get command %+v\n", cmd)
-	client.SetAddress(cmd.Address)
+	a := client.NewAgent(cmd.Address, cmd.Key)
+	//	client.SetAddress(cmd.Address)
 	pollTicker := time.NewTicker(cmd.PollInterval)
 	reportTicker := time.NewTicker(cmd.ReportInterval)
 
@@ -33,7 +34,7 @@ func main() {
 			sM = append(sM, metrics.Get(&mInit)...)
 		case <-reportTicker.C:
 			fmt.Println("Send Metric: ", len(sM))
-			sendCount := client.SendMetrics(sM)
+			sendCount := client.SendMetrics(a, sM)
 			if sendCount == len(sM) {
 				metrics.ResetCounter()
 				sM = nil

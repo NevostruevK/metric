@@ -13,23 +13,26 @@ import (
 	"github.com/NevostruevK/metric/internal/util/metrics"
 )
 
-var serverAddress = "127.0.0.1:8080"
-
-func SetAddress(addr string) {
-	serverAddress = addr
+type Agent struct {
+	client  *http.Client
+	address string
+	hashKey string
 }
 
-func SendMetrics(sM []metrics.MetricCreater) int {
-	client := &http.Client{}
+func NewAgent(address, hashKey string) *Agent {
+	return &Agent{client: &http.Client{}, address: address, hashKey: hashKey}
+}
+
+func SendMetrics(a *Agent, sM []metrics.MetricCreater) int {
 	for i, m := range sM {
 		switch obj := m.(type) {
 		case *metrics.BasicMetric:
-			c := clientText{client: client, obj: *obj}
+			c := clientText{Agent: a, obj: *obj}
 			if err := c.SendMetric(); err != nil {
 				return i
 			}
 		case *metrics.Metrics:
-			c := clientJSON{client: client, obj: *obj}
+			c := clientJSON{Agent: a, obj: *obj}
 			if err := c.SendMetric(); err != nil {
 				return i
 			}
@@ -45,19 +48,19 @@ type Sender interface {
 }
 
 type clientText struct {
-	client *http.Client
-	obj    metrics.BasicMetric
+	*Agent
+	obj metrics.BasicMetric
 }
 
 type clientJSON struct {
-	client *http.Client
-	obj    metrics.Metrics
+	*Agent
+	obj metrics.Metrics
 }
 
 func (c *clientText) SendMetric() (err error) {
 	endpoint := url.URL{
 		Scheme: "http",
-		Host:   serverAddress,
+		Host:   c.address,
 		Path:   "/update/" + c.obj.String(),
 	}
 	request, err := http.NewRequest(http.MethodPost, endpoint.String(), nil)
@@ -86,8 +89,14 @@ func (c *clientText) SendMetric() (err error) {
 func (c *clientJSON) SendMetric() (err error) {
 	endpoint := url.URL{
 		Scheme: "http",
-		Host:   serverAddress,
+		Host:   c.address,
 		Path:   "/update/",
+	}
+
+	if c.hashKey != "" {
+		if err = c.obj.SetHash(c.hashKey); err != nil {
+			return fmt.Errorf(" can't set hash for metric %v , error %v", c.obj, err)
+		}
 	}
 	data, err := json.Marshal(c.obj)
 	if err != nil {

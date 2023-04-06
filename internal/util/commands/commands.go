@@ -16,6 +16,7 @@ const (
 	defPollInterval   = time.Second * 2
 	defStoreInterval  = time.Second * 300
 	defRestore        = true
+	defKey            = ""
 )
 
 type Commands struct {
@@ -25,13 +26,14 @@ type Commands struct {
 	PollInterval   time.Duration `env:"POLL_INTERVAL" envDefault:"2s"`
 	StoreInterval  time.Duration `env:"STORE_INTERVAL" envDefault:"300s"`
 	Restore        bool          `env:"RESTORE" envDefault:"true"`
-	// parsingError   bool
+	Key            string        `env:"KEY" envDefault:""`
 }
 
 func GetAgentCommands() *Commands {
 	addrPtr := flag.String("a", defAddress, "server address HOST:PORT")
 	reportIntervalPtr := flag.Duration("r", defReportInterval, "report interval type : time.duration")
 	pollIntervalPtr := flag.Duration("p", defPollInterval, "report interval type : time.duration")
+	keyPtr := flag.String("k", defKey, "key for signing metrics")
 	flag.Parse()
 
 	cmd := Commands{}
@@ -48,6 +50,9 @@ func GetAgentCommands() *Commands {
 	if _, ok := os.LookupEnv("POLL_INTERVAL"); !ok || err != nil {
 		cmd.PollInterval = *pollIntervalPtr
 	}
+	if _, ok := os.LookupEnv("KEY"); !ok || err != nil {
+		cmd.Key = *keyPtr
+	}
 	return &cmd
 }
 
@@ -56,6 +61,7 @@ func GetServerCommands() *Commands {
 	restorePtr := flag.Bool("r", defRestore, "set if you need to load metric from file")
 	storeIntervalPtr := flag.Duration("i", defStoreInterval, "store interval type : time.duration")
 	storeFilePtr := flag.String("f", defStoreFile, "file for saving metrics")
+	keyPtr := flag.String("k", defKey, "key for signing metrics")
 	flag.Parse()
 
 	cmd := Commands{}
@@ -75,6 +81,9 @@ func GetServerCommands() *Commands {
 	}
 	if _, ok := os.LookupEnv("STORE_FILE"); !ok || err != nil {
 		cmd.StoreFile = *storeFilePtr
+	}
+	if _, ok := os.LookupEnv("KEY"); !ok || err != nil {
+		cmd.Key = *keyPtr
 	}
 	return &cmd
 }

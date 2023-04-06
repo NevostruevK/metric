@@ -10,6 +10,7 @@ type Metrics struct {
 	MType string   `json:"type"`            // Параметр принимающий значение gauge или counter
 	Delta *int64   `json:"delta,omitempty"` // Значение метрики в случае передачи counter
 	Value *float64 `json:"value,omitempty"` // Значение метрики в случае передачи gauge
+	Hash  string   `json:"hash,omitempty"`  // значение хеш-функции
 }
 
 func (m *Metrics) NewGaugeMetric(id string, f float64) MetricCreater {

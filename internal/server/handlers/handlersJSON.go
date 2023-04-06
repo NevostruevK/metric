@@ -11,7 +11,7 @@ import (
 	"github.com/NevostruevK/metric/internal/util/metrics"
 )
 
-func GetMetricJSONHandler(s storage.Repository) http.HandlerFunc {
+func GetMetricJSONHandler(s storage.Repository, hashKey string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		m, ok := getMetricFromRequest(w, r)
@@ -32,20 +32,34 @@ func GetMetricJSONHandler(s storage.Repository) http.HandlerFunc {
 			fmt.Println("GetMetricJSONHandler: Type " + m.MType + ", id " + m.ID + " is not a metric type")
 			return
 		}
-		sendResponse(load, w, r)
+
+		sendResponse(load, hashKey, w, r)
 	}
 }
 
-func AddMetricJSONHandler(s storage.Repository) http.HandlerFunc {
+func AddMetricJSONHandler(s storage.Repository, hashKey string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		m, ok := getMetricFromRequest(w, r)
 		if !ok {
 			return
 		}
+
+		ok, err := m.CheckHash(hashKey)
+		if err != nil {
+			http.Error(w, "error : can't check hash for metric "+m.String(), http.StatusInternalServerError)
+			fmt.Println("GetMetricJSONHandler: : can't check hash for metric " + m.String())
+			return
+		}
+		if !ok {
+			http.Error(w, "error : wrong hash for metric "+m.String(), http.StatusBadRequest)
+			fmt.Println("GetMetricJSONHandler: : wrong hash for metric " + m.String())
+			return
+		}
+
 		s.AddMetric(m)
 
-		sendResponse(m, w, r)
+		sendResponse(m, hashKey, w, r)
 	}
 }
 
@@ -83,7 +97,15 @@ func getMetricFromRequest(w http.ResponseWriter, r *http.Request) (*metrics.Metr
 	return &m, true
 }
 
-func sendResponse(m *metrics.Metrics, w http.ResponseWriter, r *http.Request) {
+func sendResponse(m *metrics.Metrics, hashKey string, w http.ResponseWriter, r *http.Request) {
+
+	if hashKey != "" {
+		if err := m.SetHash(hashKey); err != nil {
+			http.Error(w, "Can't set hash", http.StatusInternalServerError)
+			return
+		}
+	}
+
 	data, err := json.Marshal(*m)
 	if err != nil {
 		http.Error(w, "Can't convert to JSON", http.StatusInternalServerError)
