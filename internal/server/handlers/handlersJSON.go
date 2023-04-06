@@ -44,17 +44,18 @@ func AddMetricJSONHandler(s storage.Repository, hashKey string) http.HandlerFunc
 		if !ok {
 			return
 		}
-
-		ok, err := m.CheckHash(hashKey)
-		if err != nil {
-			http.Error(w, "error : can't check hash for metric "+m.String(), http.StatusInternalServerError)
-			fmt.Println("GetMetricJSONHandler: : can't check hash for metric " + m.String())
-			return
-		}
-		if !ok {
-			http.Error(w, "error : wrong hash for metric "+m.String(), http.StatusBadRequest)
-			fmt.Println("GetMetricJSONHandler: : wrong hash for metric " + m.String())
-			return
+		if hashKey != "" {
+			ok, err := m.CheckHash(hashKey)
+			if err != nil {
+				http.Error(w, "error : can't check hash for metric "+m.String(), http.StatusInternalServerError)
+				fmt.Println("GetMetricJSONHandler: : can't check hash for metric " + m.String())
+				return
+			}
+			if !ok {
+				http.Error(w, "error : wrong hash for metric "+m.String(), http.StatusBadRequest)
+				fmt.Println("GetMetricJSONHandler: : wrong hash for metric " + m.String())
+				return
+			}
 		}
 
 		s.AddMetric(m)
