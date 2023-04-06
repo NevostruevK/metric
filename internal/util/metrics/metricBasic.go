@@ -70,7 +70,7 @@ func (m *BasicMetric) AddCounterValue(value int64) error {
 
 func (m BasicMetric) StringValue() string {
 	if m.MType == Gauge {
-		return fmt.Sprintf("%.3f", float64(m.GValue))
+		return roundGauge(float64(m.GValue))
 	}
 	return fmt.Sprintf("%d", m.CValue)
 }

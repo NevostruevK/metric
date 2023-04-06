@@ -46,7 +46,7 @@ func (m *Metrics) AddCounterValue(value int64) error {
 
 func (m Metrics) StringValue() string {
 	if m.MType == Gauge {
-		return fmt.Sprintf("%.3f", float64(*m.Value))
+		return roundGauge(float64(*m.Value))
 	}
 	return fmt.Sprintf("%d", *m.Delta)
 }

@@ -1,7 +1,9 @@
 package metrics
 
 import (
+	"fmt"
 	"math/rand"
+	"regexp"
 	"runtime"
 	"time"
 )
@@ -15,6 +17,11 @@ const (
 	Gauge   = "gauge"
 	Counter = "counter"
 )
+func roundGauge(f float64) string{
+	s := fmt.Sprintf("%.3f", f)
+	r := regexp.MustCompile("0{1,2}$")
+	return r.ReplaceAllString(s, "")
+}
 
 func IsMetricType(checkType string) bool {
 	if checkType != Gauge && checkType != Counter {
