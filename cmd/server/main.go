@@ -24,7 +24,7 @@ func main() {
 	st := storage.NewMemStorage(cmd.Restore, cmd.StoreInterval == 0, cmd.StoreFile)
 	storeInterval := time.NewTicker(cmd.StoreInterval)
 
-	db, err := db.NewDb(cmd.DataBaseDSN)
+	db, err := db.NewDB(cmd.DataBaseDSN)
 	if err != nil{
 		fmt.Println("Open DB connection with error ",err)
 	}

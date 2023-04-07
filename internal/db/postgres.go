@@ -12,7 +12,7 @@ type DB struct{
 	init bool
 }
 
-func NewDb(connStr string) (*DB, error){
+func NewDB(connStr string) (*DB, error){
 	db := &DB{db: nil, init: false}
 	if connStr == ""{
 		fmt.Println("Empty address data base")
