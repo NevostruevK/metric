@@ -28,13 +28,13 @@ type MemStorage struct {
 
 func NewMemStorage(restore, needToSyncWrite bool, filename string) *MemStorage {
 	data := make(map[string]RepositoryData)
-	if filename == "" {
-		return &MemStorage{data: data, saver: nil, needToSyncWrite: false}
-	}
 	s, err := NewSaver(filename)
 	if err != nil {
 		fmt.Printf("Can't write metrics to %s\n", filename)
-		return &MemStorage{data: data, saver: nil, needToSyncWrite: false}
+		return &MemStorage{data: data, saver: s, needToSyncWrite: false}
+	}
+	if filename == "" {
+		return &MemStorage{data: data, saver: s, needToSyncWrite: false}
 	}
 	if restore {
 		l, err := NewLoader(filename)

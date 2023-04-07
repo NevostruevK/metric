@@ -11,17 +11,22 @@ import (
 type saver struct {
 	file    *os.File
 	encoder *json.Encoder
+	init 	bool
 }
 
 func NewSaver(filename string) (*saver, error) {
+	if filename == ""{
+		return &saver{init : false,}, nil
+	}
 	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0777)
 	if err != nil {
 		fmt.Printf("Can't open %s for writing, error : %v\n", filename, err)
-		return nil, err
+		return &saver{init : false,}, err
 	}
 	return &saver{
 		file:    file,
 		encoder: json.NewEncoder(file),
+		init: true,
 	}, nil
 }
 

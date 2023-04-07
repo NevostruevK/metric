@@ -20,15 +20,17 @@ func main() {
 	cmd := commands.GetServerCommands()
 	fmt.Printf("Server get command %+v\n", cmd)
 
+	db, err := db.NewDB(cmd.DataBaseDSN)
+	if err != nil{
+		fmt.Println("Open DB connection with error ",err)
+	}else{
+		defer db.Close()
+	//	cmd.StoreFile = ""
+	}
 	//	server.SetAddress(cmd.Address)
 	st := storage.NewMemStorage(cmd.Restore, cmd.StoreInterval == 0, cmd.StoreFile)
 	storeInterval := time.NewTicker(cmd.StoreInterval)
 
-	db, err := db.NewDB(cmd.DataBaseDSN)
-	if err != nil{
-		fmt.Println("Open DB connection with error ",err)
-	}
-	defer db.Close()
 	go server.Start(st, db, cmd.Address, cmd.Key)
 
 	for {

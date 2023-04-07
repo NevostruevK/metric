@@ -92,8 +92,5 @@ func GetServerCommands() *Commands {
 	if _, ok := os.LookupEnv("DATABASE_DSN"); !ok || err != nil {
 		cmd.DataBaseDSN = *dataBasePtr
 	}
-	if cmd.DataBaseDSN != ""{
-		cmd.StoreFile = ""
-	}
 	return &cmd
 }
