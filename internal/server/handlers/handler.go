@@ -4,10 +4,25 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/NevostruevK/metric/internal/db"
 	"github.com/NevostruevK/metric/internal/storage"
 	"github.com/NevostruevK/metric/internal/util/metrics"
 	"github.com/go-chi/chi/v5"
 )
+
+func GetPingHandler(db *db.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		if err := db.Ping(); err != nil{
+//			w.WriteHeader(http.StatusOK)
+			http.Error(w, "Can't Ping database "+err.Error(), http.StatusInternalServerError)
+//			fmt.Fprintln(w, m.String())
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintln(w, "ping database ok")
+	}
+}
 
 func GetAllMetricsHandler(s storage.Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

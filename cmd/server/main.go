@@ -7,6 +7,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/NevostruevK/metric/internal/db"
 	"github.com/NevostruevK/metric/internal/server"
 	"github.com/NevostruevK/metric/internal/storage"
 	"github.com/NevostruevK/metric/internal/util/commands"
@@ -23,7 +24,12 @@ func main() {
 	st := storage.NewMemStorage(cmd.Restore, cmd.StoreInterval == 0, cmd.StoreFile)
 	storeInterval := time.NewTicker(cmd.StoreInterval)
 
-	go server.Start(st, cmd.Address, cmd.Key)
+	db, err := db.NewDb(cmd.DataBaseDSN)
+	if err != nil{
+		fmt.Println("Open DB connection with error ",err)
+	}
+	defer db.Close()
+	go server.Start(st, db, cmd.Address, cmd.Key)
 
 	for {
 		select {
