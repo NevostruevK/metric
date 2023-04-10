@@ -11,13 +11,17 @@ type RepositoryData interface {
 	Type() string
 	StringValue() string
 	CounterValue() int64
+	GaugeValue() float64
 	AddCounterValue(int64) error
+	ConvertToMetrics() metrics.Metrics
 }
 
 type Repository interface {
-	AddMetric(RepositoryData)
+	AddMetric(RepositoryData) error
 	GetMetric(reqType, name string) (RepositoryData, error)
-	GetAllMetrics() []RepositoryData
+//	GetAllMetrics() ([]RepositoryData, error)
+	GetAllMetrics() ([]metrics.Metrics, error)
+	Close() error
 }
 
 type MemStorage struct {
@@ -67,11 +71,12 @@ func (s *MemStorage) SaveAllIntoFile() (int, error) {
 	return count, nil
 }
 
-func (s *MemStorage) Close() {
+func (s *MemStorage) Close() error {
 	s.saver.Close()
+	return nil
 }
 
-func (s *MemStorage) AddMetric(rt RepositoryData) {
+func (s *MemStorage) AddMetric(rt RepositoryData) error{
 	if rt.Type() == metrics.Counter && s.data[rt.Name()] != nil {
 		rt.AddCounterValue(s.data[rt.Name()].CounterValue())
 	}
@@ -79,6 +84,7 @@ func (s *MemStorage) AddMetric(rt RepositoryData) {
 	if s.needToSyncWrite {
 		s.saver.WriteMetric(rt)
 	}
+	return nil
 }
 
 func (s *MemStorage) GetMetric(reqType, name string) (RepositoryData, error) {
@@ -94,12 +100,13 @@ func (s *MemStorage) GetMetric(reqType, name string) (RepositoryData, error) {
 	return nil, fmt.Errorf("type %s : name %s is not valid metric type", reqType, name)
 }
 
-func (s *MemStorage) GetAllMetrics() []RepositoryData {
-	sM := make([]RepositoryData, 0, len(s.data))
+//func (s *MemStorage) GetAllMetrics() ([]RepositoryData, error) {
+func (s *MemStorage) GetAllMetrics() ([]metrics.Metrics, error) {
+		sM := make([]metrics.Metrics, 0, len(s.data))
 	for _, m := range s.data {
-		sM = append(sM, m)
+		sM = append(sM, m.ConvertToMetrics())
 	}
-	return sM
+	return sM, nil
 }
 
 func (s *MemStorage) ShowMetrics() {

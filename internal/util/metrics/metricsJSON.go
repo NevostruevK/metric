@@ -17,8 +17,12 @@ func (m *Metrics) NewGaugeMetric(id string, f float64) MetricCreater {
 	return &Metrics{ID: id, MType: Gauge, Value: &f}
 }
 
-func (m Metrics) NewCounterMetric(id string, i int64) MetricCreater {
+func (m *Metrics) NewCounterMetric(id string, i int64) MetricCreater {
 	return &Metrics{ID: id, MType: Counter, Delta: &i}
+}
+
+func (m *Metrics) ConvertToMetrics() Metrics{
+	return *m
 }
 
 func (m *Metrics) Name() string {
@@ -33,6 +37,13 @@ func (m *Metrics) CounterValue() int64 {
 		return 0
 	}
 	return *m.Delta
+}
+
+func (m *Metrics) GaugeValue() float64 {
+	if m == nil {
+		return 0
+	}
+	return *m.Value
 }
 
 func (m *Metrics) AddCounterValue(value int64) error {

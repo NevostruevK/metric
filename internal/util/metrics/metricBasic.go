@@ -48,6 +48,16 @@ func NewValueMetric(name string, typeM string, value string) (*BasicMetric, erro
 	}
 }
 
+func (m *BasicMetric) ConvertToMetrics() Metrics{
+	mJSON := Metrics{} 
+	if m.MType == Gauge{
+		mJSON.NewGaugeMetric(m.MName, float64(m.GValue))
+		return mJSON
+	}
+	NewCounterMetric(m.MName, int64(m.GValue))
+	return mJSON
+}
+
 func (m *BasicMetric) Name() string {
 	return m.MName
 }
@@ -58,6 +68,10 @@ func (m *BasicMetric) Type() string {
 
 func (m *BasicMetric) CounterValue() int64 {
 	return int64(m.CValue)
+}
+
+func (m *BasicMetric) GaugeValue() float64 {
+	return float64(m.GValue)
 }
 
 func (m *BasicMetric) AddCounterValue(value int64) error {

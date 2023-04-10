@@ -11,22 +11,22 @@ import (
 type saver struct {
 	file    *os.File
 	encoder *json.Encoder
-	init 	bool
+	init    bool
 }
 
 func NewSaver(filename string) (*saver, error) {
-	if filename == ""{
-		return &saver{init : false,}, nil
+	if filename == "" {
+		return &saver{init: false}, nil
 	}
 	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0777)
 	if err != nil {
 		fmt.Printf("Can't open %s for writing, error : %v\n", filename, err)
-		return &saver{init : false,}, err
+		return &saver{init: false}, err
 	}
 	return &saver{
 		file:    file,
 		encoder: json.NewEncoder(file),
-		init: true,
+		init:    true,
 	}, nil
 }
 
@@ -35,6 +35,9 @@ func (s *saver) WriteMetric(rp RepositoryData) error {
 }
 
 func (s *saver) Close() (err error) {
+	if !s.init {
+		return nil
+	}
 	if err = s.file.Close(); err != nil {
 		fmt.Printf("Closing file %s  with the error : %v\n", s.file.Name(), err)
 	}

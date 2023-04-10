@@ -26,7 +26,12 @@ func GetPingHandler(db *db.DB) http.HandlerFunc {
 
 func GetAllMetricsHandler(s storage.Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		sm := s.GetAllMetrics()
+		sm, err := s.GetAllMetrics()
+		if err != nil{
+			w.Header().Set("Content-Type", "text/plain")
+			http.Error(w, "Can't get all metrics "+err.Error(), http.StatusInternalServerError)
+			return
+		}
 		w.Header().Set("Content-Type", "text/html")
 		var prefix = `<html class="h-100">
     			<head>
