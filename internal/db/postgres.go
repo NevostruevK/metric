@@ -30,7 +30,7 @@ func NewDB(connStr string) (*DB, error) {
 	db := &DB{db: nil, init: false}
 	if connStr == "" {
 		fmt.Println("Empty address data base")
-		return db, nil
+		return db, fmt.Errorf(" Empty address data base")
 	}
 	//	connStr := "user=postgres sslmode=disable"
 	conn, err := sql.Open("postgres", connStr)
@@ -156,7 +156,7 @@ func (db *DB) ShowMetrics() error{
 			continue
 		}
 	}
-	return nil
+	return rows.Err()
 }
 
 func (db *DB) GetAllMetrics() ([]metrics.Metrics, error) {
@@ -196,7 +196,8 @@ func (db *DB) GetAllMetrics() ([]metrics.Metrics, error) {
 		}
 	}
 	fmt.Println(sM)	
-	return sM, nil
+//	return sM, nil
+	return sM, rows.Err()
 }
 
 func (db *DB) AddMetric(rt storage.RepositoryData) error{

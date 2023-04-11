@@ -23,8 +23,8 @@ func main() {
 	storeInterval := time.NewTicker(cmd.StoreInterval)
 	st := &storage.MemStorage{}
 	db, err := db.NewDB(cmd.DataBaseDSN)
-	if err != nil {
-		fmt.Println("Open DB connection with error ", err)
+	if err != nil || cmd.DataBaseDSN == ""{
+		fmt.Println("Can't compleate DB connection: ", err)
 		st = storage.NewMemStorage(cmd.Restore, cmd.StoreInterval == 0, cmd.StoreFile)
 		defer func() {
 			st.SaveAllIntoFile()
