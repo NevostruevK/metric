@@ -13,10 +13,10 @@ import (
 func GetPingHandler(db *db.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
-		if err := db.Ping(); err != nil{
-//			w.WriteHeader(http.StatusOK)
+		if err := db.Ping(); err != nil {
+			//			w.WriteHeader(http.StatusOK)
 			http.Error(w, "Can't Ping database "+err.Error(), http.StatusInternalServerError)
-//			fmt.Fprintln(w, m.String())
+			//			fmt.Fprintln(w, m.String())
 			return
 		}
 		w.WriteHeader(http.StatusOK)
@@ -27,7 +27,7 @@ func GetPingHandler(db *db.DB) http.HandlerFunc {
 func GetAllMetricsHandler(s storage.Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sm, err := s.GetAllMetrics()
-		if err != nil{
+		if err != nil {
 			w.Header().Set("Content-Type", "text/plain")
 			http.Error(w, "Can't get all metrics "+err.Error(), http.StatusInternalServerError)
 			return

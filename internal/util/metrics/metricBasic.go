@@ -48,9 +48,9 @@ func NewValueMetric(name string, typeM string, value string) (*BasicMetric, erro
 	}
 }
 
-func (m *BasicMetric) ConvertToMetrics() Metrics{
-	mJSON := Metrics{} 
-	if m.MType == Gauge{
+func (m *BasicMetric) ConvertToMetrics() Metrics {
+	mJSON := Metrics{}
+	if m.MType == Gauge {
 		mJSON.NewGaugeMetric(m.MName, float64(m.GValue))
 		return mJSON
 	}

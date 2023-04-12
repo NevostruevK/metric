@@ -24,6 +24,7 @@ func NewAgent(address, hashKey string) *Agent {
 }
 
 func SendMetrics(a *Agent, sM []metrics.MetricCreater) int {
+	mJSON := make([]metrics.Metrics, 0, len(sM))
 	for i, m := range sM {
 		switch obj := m.(type) {
 		case *metrics.BasicMetric:
@@ -32,20 +33,30 @@ func SendMetrics(a *Agent, sM []metrics.MetricCreater) int {
 				return i
 			}
 		case *metrics.Metrics:
-			c := clientJSON{Agent: a, obj: *obj}
-			if err := c.SendMetric(); err != nil {
-				return i
-			}
+			//			c := clientJSON{Agent: a, obj: *obj}
+			mJSON = append(mJSON, *obj)
+			//			c := clientJSON{Agent: a, obj: []metrics.Metrics{*obj}}
+			//			if err := c.SendMetric(); err != nil {
+			//				return i
+			//			}
 		default:
 			fmt.Printf("Type %T not implemented\n", obj)
+		}
+	}
+	if len(mJSON) > 0 {
+		c := clientJSON{Agent: a, obj: mJSON}
+		if err := c.SendMetric(); err != nil {
+			return 0
 		}
 	}
 	return len(sM)
 }
 
+/*
 type Sender interface {
 	SendMetric() error
 }
+*/
 
 type clientText struct {
 	*Agent
@@ -54,7 +65,7 @@ type clientText struct {
 
 type clientJSON struct {
 	*Agent
-	obj metrics.Metrics
+	obj []metrics.Metrics
 }
 
 func (c *clientText) SendMetric() (err error) {
@@ -90,25 +101,44 @@ func (c *clientJSON) SendMetric() (err error) {
 	endpoint := url.URL{
 		Scheme: "http",
 		Host:   c.address,
-		Path:   "/update/",
+		//		Path:   "/update/",
+	}
+	if len(c.obj) > 1 {
+		endpoint.Path = "/updates/"
+	} else {
+		endpoint.Path = "/update/"
 	}
 
-	if c.hashKey != "" {
-		if err = c.obj.SetHash(c.hashKey); err != nil {
-			return fmt.Errorf(" can't set hash for metric %v , error %v", c.obj, err)
+	for _, m := range c.obj {
+		if c.hashKey != "" {
+			if err = m.SetHash(c.hashKey); err != nil {
+				//			if err = c.obj.SetHash(c.hashKey); err != nil {
+				return fmt.Errorf(" can't set hash for metric %v , error %v", c.obj, err)
+			}
 		}
 	}
+	//	data, err := json.Marshal(c.obj)
 	data, err := json.Marshal(c.obj)
 	if err != nil {
 		fmt.Println("SendMetric(JSON): marshal data error: ", err)
 		return
 	}
+
+	data, errCompress := fgzip.Compress(data)
+
 	request, err := http.NewRequest(http.MethodPost, endpoint.String(), bytes.NewBuffer(data))
 	if err != nil {
 		fmt.Println("SendMetric(JSON): create request error: ", err)
 		return
 	}
 	request.Header.Set("Content-Type", "application/json")
+	
+	if errCompress != nil{
+		fmt.Println("can't compress data", err)
+	}else{
+		request.Header.Add("Content-Encoding", "gzip")
+	}
+
 	response, err := c.client.Do(request)
 	if err != nil {
 		fmt.Println("SendMetric(JSON): send request error: ", err)

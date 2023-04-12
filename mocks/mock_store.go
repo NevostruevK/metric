@@ -5,72 +5,72 @@
 package mock_storage
 
 import (
-        reflect "reflect"
+	reflect "reflect"
 
-        storage "github.com/NevostruevK/metric/internal/storage"
-        gomock "github.com/golang/mock/gomock"
+	storage "github.com/NevostruevK/metric/internal/storage"
+	gomock "github.com/golang/mock/gomock"
 )
 
 // MockRepository is a mock of Repository interface.
 type MockRepository struct {
-        ctrl     *gomock.Controller
-        recorder *MockRepositoryMockRecorder
+	ctrl     *gomock.Controller
+	recorder *MockRepositoryMockRecorder
 }
 
 // MockRepositoryMockRecorder is the mock recorder for MockRepository.
 type MockRepositoryMockRecorder struct {
-        mock *MockRepository
+	mock *MockRepository
 }
 
 // NewMockRepository creates a new mock instance.
 func NewMockRepository(ctrl *gomock.Controller) *MockRepository {
-        mock := &MockRepository{ctrl: ctrl}
-        mock.recorder = &MockRepositoryMockRecorder{mock}
-        return mock
+	mock := &MockRepository{ctrl: ctrl}
+	mock.recorder = &MockRepositoryMockRecorder{mock}
+	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockRepository) EXPECT() *MockRepositoryMockRecorder {
-        return m.recorder
+	return m.recorder
 }
 
 // AddMetric mocks base method.
 func (m *MockRepository) AddMetric(arg0 storage.RepositoryData) {
-        m.ctrl.T.Helper()
-        m.ctrl.Call(m, "AddMetric", arg0)
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "AddMetric", arg0)
 }
 
 // AddMetric indicates an expected call of AddMetric.
 func (mr *MockRepositoryMockRecorder) AddMetric(arg0 interface{}) *gomock.Call {
-        mr.mock.ctrl.T.Helper()
-        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddMetric", reflect.TypeOf((*MockRepository)(nil).AddMetric), arg0)
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddMetric", reflect.TypeOf((*MockRepository)(nil).AddMetric), arg0)
 }
 
 // GetAllMetrics mocks base method.
 func (m *MockRepository) GetAllMetrics() []storage.RepositoryData {
-        m.ctrl.T.Helper()
-        ret := m.ctrl.Call(m, "GetAllMetrics")
-        ret0, _ := ret[0].([]storage.RepositoryData)
-        return ret0
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAllMetrics")
+	ret0, _ := ret[0].([]storage.RepositoryData)
+	return ret0
 }
 
 // GetAllMetrics indicates an expected call of GetAllMetrics.
 func (mr *MockRepositoryMockRecorder) GetAllMetrics() *gomock.Call {
-        mr.mock.ctrl.T.Helper()
-        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllMetrics", reflect.TypeOf((*MockRepository)(nil).GetAllMetrics))
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllMetrics", reflect.TypeOf((*MockRepository)(nil).GetAllMetrics))
 }
 
 // GetMetric mocks base method.
 func (m *MockRepository) GetMetric(arg0, arg1 string) (storage.RepositoryData, error) {
-        m.ctrl.T.Helper()
-        ret := m.ctrl.Call(m, "GetMetric", arg0, arg1)
-        ret0, _ := ret[0].(storage.RepositoryData)
-        ret1, _ := ret[1].(error)
-        return ret0, ret1
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMetric", arg0, arg1)
+	ret0, _ := ret[0].(storage.RepositoryData)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // GetMetric indicates an expected call of GetMetric.
 func (mr *MockRepositoryMockRecorder) GetMetric(arg0, arg1 interface{}) *gomock.Call {
-        mr.mock.ctrl.T.Helper()
-        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMetric", reflect.TypeOf((*MockRepository)(nil).GetMetric), arg0, arg1)
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMetric", reflect.TypeOf((*MockRepository)(nil).GetMetric), arg0, arg1)
 }

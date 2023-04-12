@@ -23,27 +23,27 @@ func main() {
 	storeInterval := time.NewTicker(cmd.StoreInterval)
 	st := &storage.MemStorage{}
 	db, err := db.NewDB(cmd.DataBaseDSN)
-	if err != nil || cmd.DataBaseDSN == ""{
+	if err != nil || cmd.DataBaseDSN == "" {
 		fmt.Println("Can't compleate DB connection: ", err)
 		st = storage.NewMemStorage(cmd.Restore, cmd.StoreInterval == 0, cmd.StoreFile)
 		defer func() {
 			st.SaveAllIntoFile()
 			st.ShowMetrics()
 			st.Close()
-		}()	
+		}()
 		go server.Start(st, db, cmd.Address, cmd.Key)
-	
+
 	} else {
 		defer func() {
 			db.ShowMetrics()
 			db.Close()
-		}()	
+		}()
 		storeInterval.Stop()
 		go server.Start(db, db, cmd.Address, cmd.Key)
 	}
 
-//	st := storage.NewMemStorage(cmd.Restore, cmd.StoreInterval == 0, cmd.StoreFile)
-//	go server.Start(st, db, cmd.Address, cmd.Key)
+	//	st := storage.NewMemStorage(cmd.Restore, cmd.StoreInterval == 0, cmd.StoreFile)
+	//	go server.Start(st, db, cmd.Address, cmd.Key)
 
 	for {
 		select {
@@ -53,9 +53,9 @@ func main() {
 		case <-gracefulShutdown:
 			fmt.Println("Server Get Signal!")
 			storeInterval.Stop()
-//			st.SaveAllIntoFile()
-//			st.Close()
-//			st.ShowMetrics()
+			//			st.SaveAllIntoFile()
+			//			st.Close()
+			//			st.ShowMetrics()
 			return
 		}
 	}

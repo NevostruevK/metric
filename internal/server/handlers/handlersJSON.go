@@ -14,11 +14,11 @@ import (
 func GetMetricJSONHandler(s storage.Repository, hashKey string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		m, ok := getMetricFromRequest(w, r)
+		sM, ok := getMetricFromRequest(w, r, "", 1)
 		if !ok {
 			return
 		}
-
+		m := sM[0]
 		rt, err := s.GetMetric(m.MType, m.ID)
 		if err != nil {
 			http.Error(w, "Type "+m.MType+", id "+m.ID+" not found", http.StatusNotFound)
@@ -33,38 +33,68 @@ func GetMetricJSONHandler(s storage.Repository, hashKey string) http.HandlerFunc
 			return
 		}
 
-		sendResponse(load, hashKey, w, r)
+		sendResponse([]metrics.Metrics{*load}, hashKey, w, r)
+//		sendResponse(load, hashKey, w, r)
+	}
+}
+
+func AddBatchMetricJSONHandler(s storage.Repository, hashKey string, cap int) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+fmt.Println("AddBatchMetricJSONHandler start")
+		m, ok := getMetricFromRequest(w, r, hashKey, cap)
+		if !ok {
+			return
+		}
+fmt.Println("AddBatchMetricJSONHandler stage1")
+
+		if err := s.AddGroupOfMetrics(m); err!=nil{
+			fmt.Println("AddGroupOfMetrics returned the error : ",err)
+			http.Error(w, fmt.Sprintf("AddGroupOfMetrics returned the error : %v",err), http.StatusInternalServerError)
+			return
+		}
+fmt.Println("AddBatchMetricJSONHandler stage2")
+
+		sendResponse(m, hashKey, w, r)
+//		fmt.Println(m)
+//		fmt.Fprintln(w, m)
+//		w.Write([]byte(""))
+//		fmt.Fprintln(w, "Batch of Metrucs was saved normaly")
+fmt.Println("AddBatchMetricJSONHandler stage3")
 	}
 }
 
 func AddMetricJSONHandler(s storage.Repository, hashKey string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		m, ok := getMetricFromRequest(w, r)
+		sM, ok := getMetricFromRequest(w, r, hashKey, 1)
 		if !ok {
 			return
 		}
-		if hashKey != "" {
-			ok, err := m.CheckHash(hashKey)
-			if err != nil {
-				http.Error(w, "error : can't check hash for metric "+m.String(), http.StatusInternalServerError)
-				fmt.Println("GetMetricJSONHandler: : can't check hash for metric " + m.String())
-				return
-			}
-			if !ok {
-				http.Error(w, "error : wrong hash for metric "+m.String(), http.StatusBadRequest)
-				fmt.Println("GetMetricJSONHandler: : wrong hash for metric " + m.String())
-				return
-			}
+		/*		m := sM[0]
+				if hashKey != "" {
+					ok, err := m.CheckHash(hashKey)
+					if err != nil {
+						http.Error(w, "error : can't check hash for metric "+m.String(), http.StatusInternalServerError)
+						fmt.Println("GetMetricJSONHandler: : can't check hash for metric " + m.String())
+						return
+					}
+					if !ok {
+						http.Error(w, "error : wrong hash for metric "+m.String(), http.StatusBadRequest)
+						fmt.Println("GetMetricJSONHandler: : wrong hash for metric " + m.String())
+						return
+					}
+				}
+		*/
+		if err := s.AddMetric(&sM[0]); err != nil{
+			fmt.Println("AddMetric returned the error : ",err)
+			http.Error(w, fmt.Sprintf("AddMetric returned the error : %v",err), http.StatusInternalServerError)
+			return
 		}
-
-		s.AddMetric(m)
-
-		sendResponse(m, hashKey, w, r)
+		sendResponse(sM, hashKey, w, r)
 	}
 }
 
-func getMetricFromRequest(w http.ResponseWriter, r *http.Request) (*metrics.Metrics, bool) {
+func getMetricFromRequest(w http.ResponseWriter, r *http.Request, hashKey string, initialCapacity int) ([]metrics.Metrics, bool) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if !strings.Contains(r.Header.Get("Content-Type"), "application/json") {
@@ -78,26 +108,83 @@ func getMetricFromRequest(w http.ResponseWriter, r *http.Request) (*metrics.Metr
 		http.Error(w, "read body request with an error: ", http.StatusBadRequest)
 		return nil, false
 	}
+	sM := make([]metrics.Metrics, 0, initialCapacity)
+	//	m := metrics.Metrics{}
+	//err = json.Unmarshal(b, &m)
+	//sM = append(sM, m)
+	if initialCapacity == 1 {
+		m := metrics.Metrics{}
+		err = json.Unmarshal(b, &m)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("decode JSON with an error: %v", err), http.StatusBadRequest)
+			return nil, false
+		}
+		sM = append(sM, m)
+	} else {
+		err = json.Unmarshal(b, &sM)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("decode JSON with an error: %v", err), http.StatusBadRequest)
+			return nil, false
+		}
+	}
+	/*	if initialCapacity==1 && len(sM)!=1{
+			http.Error(w, fmt.Sprintf("expected one Json metric but recieved %d metrics",len(sM)),http.StatusBadRequest)
+	//		http.Error(w, "expected one Json metric but recieved "+encode.(len(sM)), http.StatusBadRequest)
+			return nil, false
+		}
+	*/
+	for _, m := range sM {
+		if m.MType == "" || m.ID == "" {
+			http.Error(w, "param is missed", http.StatusBadRequest)
+			return nil, false
+		}
 
-	m := metrics.Metrics{}
-	err = json.Unmarshal(b, &m)
-	if err != nil {
-		http.Error(w, "decode JSON with an error: ", http.StatusBadRequest)
-		return nil, false
+		if isValidType := metrics.IsMetricType(m.MType); !isValidType {
+			http.Error(w, "Type "+m.MType+" is not implemented", http.StatusNotImplemented)
+			return nil, false
+		}
+		if hashKey != "" {
+			ok, err := m.CheckHash(hashKey)
+			if err != nil {
+				http.Error(w, "error : can't check hash for metric "+m.String(), http.StatusInternalServerError)
+				fmt.Println("GetMetricJSONHandler: : can't check hash for metric " + m.String())
+				return nil, false
+			}
+			if !ok {
+				http.Error(w, "error : wrong hash for metric "+m.String(), http.StatusBadRequest)
+				fmt.Println("GetMetricJSONHandler: : wrong hash for metric " + m.String())
+				return nil, false
+			}
+		}
 	}
 
-	if m.MType == "" || m.ID == "" {
-		http.Error(w, "param is missed", http.StatusBadRequest)
-		return nil, false
-	}
-
-	if isValidType := metrics.IsMetricType(m.MType); !isValidType {
-		http.Error(w, "Type "+m.MType+" is not implemented", http.StatusNotImplemented)
-		return nil, false
-	}
-	return &m, true
+	return sM, true
 }
 
+func sendResponse(sM []metrics.Metrics, hashKey string, w http.ResponseWriter, r *http.Request) {
+
+	for _, m:=range sM{
+		if hashKey != "" {
+			if err := m.SetHash(hashKey); err != nil {
+				http.Error(w, "Can't set hash", http.StatusInternalServerError)
+				return
+			}
+		}	
+	}
+	var data []byte
+	var err error
+	if len(sM) == 1{
+		data, err = json.Marshal(sM[0])
+	}else{
+		data, err = json.Marshal(sM)
+	}	
+	if err != nil {
+		http.Error(w, "Can't convert to JSON", http.StatusInternalServerError)
+		return
+	}
+	w.Write(data)
+}
+/*
 func sendResponse(m *metrics.Metrics, hashKey string, w http.ResponseWriter, r *http.Request) {
 
 	if hashKey != "" {
@@ -114,3 +201,4 @@ func sendResponse(m *metrics.Metrics, hashKey string, w http.ResponseWriter, r *
 	}
 	w.Write(data)
 }
+*/

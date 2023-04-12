@@ -19,9 +19,9 @@ type RepositoryData interface {
 type Repository interface {
 	AddMetric(RepositoryData) error
 	GetMetric(reqType, name string) (RepositoryData, error)
-//	GetAllMetrics() ([]RepositoryData, error)
+	//	GetAllMetrics() ([]RepositoryData, error)
 	GetAllMetrics() ([]metrics.Metrics, error)
-	Close() error
+	AddGroupOfMetrics(sM []metrics.Metrics) error
 }
 
 type MemStorage struct {
@@ -76,7 +76,20 @@ func (s *MemStorage) Close() error {
 	return nil
 }
 
-func (s *MemStorage) AddMetric(rt RepositoryData) error{
+func (s *MemStorage) AddGroupOfMetrics(sM []metrics.Metrics) error {
+	for _, m := range sM{
+		if m.Type() == metrics.Counter && s.data[m.Name()] != nil {
+			m.AddCounterValue(s.data[m.Name()].CounterValue())
+		}
+		s.data[m.Name()] = &m
+		if s.needToSyncWrite {
+			s.saver.WriteMetric(&m)
+		}		
+	}
+	return nil
+}
+
+func (s *MemStorage) AddMetric(rt RepositoryData) error {
 	if rt.Type() == metrics.Counter && s.data[rt.Name()] != nil {
 		rt.AddCounterValue(s.data[rt.Name()].CounterValue())
 	}
@@ -102,7 +115,7 @@ func (s *MemStorage) GetMetric(reqType, name string) (RepositoryData, error) {
 
 //func (s *MemStorage) GetAllMetrics() ([]RepositoryData, error) {
 func (s *MemStorage) GetAllMetrics() ([]metrics.Metrics, error) {
-		sM := make([]metrics.Metrics, 0, len(s.data))
+	sM := make([]metrics.Metrics, 0, len(s.data))
 	for _, m := range s.data {
 		sM = append(sM, m.ConvertToMetrics())
 	}

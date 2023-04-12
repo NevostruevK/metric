@@ -21,7 +21,7 @@ func (m *Metrics) NewCounterMetric(id string, i int64) MetricCreater {
 	return &Metrics{ID: id, MType: Counter, Delta: &i}
 }
 
-func (m *Metrics) ConvertToMetrics() Metrics{
+func (m *Metrics) ConvertToMetrics() Metrics {
 	return *m
 }
 

@@ -18,6 +18,7 @@ const (
 	defRestore        = true
 	defKey            = ""
 	defDataBaseDSN    = ""
+//	defDataBaseDSN    = "user=postgres sslmode=disable"
 )
 
 type Commands struct {
@@ -29,7 +30,7 @@ type Commands struct {
 	Restore        bool          `env:"RESTORE" envDefault:"true"`
 	Key            string        `env:"KEY" envDefault:""`
 //	DataBaseDSN    string        `env:"DATABASE_DSN" envDefault:"user=postgres sslmode=disable"`
-	DataBaseDSN    string        `env:"DATABASE_DSN" envDefault:""`
+	DataBaseDSN string `env:"DATABASE_DSN" envDefault:""`
 }
 
 func GetAgentCommands() *Commands {

@@ -19,7 +19,7 @@ const (
 CREATE INDEX IF NOT EXISTS metrics_id ON metrics(id);
 `
 
-insertGaugeSQL = `
+	insertGaugeSQL = `
 INSERT INTO metrics (
 	id, mType, value
 ) VALUES (
@@ -27,7 +27,7 @@ INSERT INTO metrics (
 )
 `
 
-insertCounterSQL = `
+	insertCounterSQL = `
 INSERT INTO metrics (
 	id, mType, delta
 ) VALUES (
@@ -45,7 +45,6 @@ UPDATE metrics SET id = $1, mType = 'gauge', value = $2 WHERE id = $1
 	updateCounterSQL = `
 UPDATE metrics SET id = $1, mType = 'counter', delta = $2 WHERE id = $1
 	`
-
 )
 
 /*type Metrics struct {

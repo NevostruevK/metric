@@ -10,6 +10,8 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+const initialBatchMetricCapacity = 200
+
 func Start(s storage.Repository, db *db.DB, address, hashKey string) {
 
 	r := chi.NewRouter()
@@ -22,6 +24,7 @@ func Start(s storage.Repository, db *db.DB, address, hashKey string) {
 		Handler: handler,
 	}
 
+	r.Post("/updates/", handlers.AddBatchMetricJSONHandler(s, hashKey, initialBatchMetricCapacity))
 	r.Post("/update/", handlers.AddMetricJSONHandler(s, hashKey))
 	r.Post("/value/", handlers.GetMetricJSONHandler(s, hashKey))
 	r.Post("/update/{typeM}/{name}/{value}", handlers.AddMetricHandler(s))

@@ -17,17 +17,18 @@ type metricSQL struct {
 }
 
 type DB struct {
-	db            *sql.DB
-	stmtInsGauge  *sql.Stmt
-	stmtInsCounter  *sql.Stmt
-	stmtGetMetric *sql.Stmt
-	stmtUpdGauge  *sql.Stmt
-	stmtUpdCounter  *sql.Stmt
-	init          bool
+	db             *sql.DB
+	stmtInsGauge   *sql.Stmt
+	stmtInsCounter *sql.Stmt
+	stmtGetMetric  *sql.Stmt
+	stmtUpdGauge   *sql.Stmt
+	stmtUpdCounter *sql.Stmt
+	init           bool
 }
 
 func NewDB(connStr string) (*DB, error) {
 	db := &DB{db: nil, init: false}
+//	connStr = "user=postgres sslmode=disable"
 	if connStr == "" {
 		fmt.Println("Empty address data base")
 		return db, fmt.Errorf(" Empty address data base")
@@ -67,56 +68,56 @@ func NewDB(connStr string) (*DB, error) {
 		return db, err
 	}
 
-//	fmt.Println("Prepare statement")
+	//	fmt.Println("Prepare statement")
 
-/*	_, err = stmtUpdGauge.Exec("gauge123", 3.123456)
-	if err != nil {
-		return db, err
-	}
-*/
-/*		_, err = stmtInsGauge.Exec("NewGauge", "gauge", 1.1234)
+	/*	_, err = stmtUpdGauge.Exec("gauge123", 3.123456)
+		if err != nil {
+			return db, err
+		}
+	*/
+	/*		_, err = stmtInsGauge.Exec("NewGauge", "gauge", 1.1234)
+			if err != nil {
+				return db, err
+			}
+
+			_, err = stmtInsGauge.Exec("NewGauge1", "gauge", 1.12345)
+			if err != nil {
+				return db, err
+			}
+			_, err = stmtInsGauge.Exec("NewGauge3", "gauge", 1.123456)
+			//	_, err = stmtInsGauge.Exec("NewGauge")
+			//	_, err = db.stmtInsGauge.Exec("NewGauge")
+			if err != nil {
+				return db, err
+			}
+	*/
+	/*	fmt.Println("Try to insert prepared statement")
+
+		var id string
+		var mtype string
+		var delta sql.NullInt64
+		var value sql.NullFloat64
+
+		stmtGetMetric.QueryRow("NewGauge2").Scan(&id, &mtype, &delta, &value)
+		// в запросе использован контейнер "?",
+		// которому будет передано значение SomeID
+		// так можно строить запрос с параметрами
+		fmt.Println(id)
+		fmt.Println(mtype)
+		fmt.Println(delta)
+		fmt.Println(value)
+		err = stmtGetMetric.QueryRow("NewGauge3").Scan(&id, &mtype, &delta, &value)
 		if err != nil {
 			return db, err
 		}
 
-		_, err = stmtInsGauge.Exec("NewGauge1", "gauge", 1.12345)
-		if err != nil {
-			return db, err
-		}
-		_, err = stmtInsGauge.Exec("NewGauge3", "gauge", 1.123456)
-		//	_, err = stmtInsGauge.Exec("NewGauge")
-		//	_, err = db.stmtInsGauge.Exec("NewGauge")
-		if err != nil {
-			return db, err
-		}
-*/
-/*	fmt.Println("Try to insert prepared statement")
-
-	var id string
-	var mtype string
-	var delta sql.NullInt64
-	var value sql.NullFloat64
-
-	stmtGetMetric.QueryRow("NewGauge2").Scan(&id, &mtype, &delta, &value)
-	// в запросе использован контейнер "?",
-	// которому будет передано значение SomeID
-	// так можно строить запрос с параметрами
-	fmt.Println(id)
-	fmt.Println(mtype)
-	fmt.Println(delta)
-	fmt.Println(value)
-	err = stmtGetMetric.QueryRow("NewGauge3").Scan(&id, &mtype, &delta, &value)
-	if err != nil {
-		return db, err
-	}
-
-	//	row, err := stmtGetMetric.QueryRow("NewGauge3")
-	fmt.Println("Try to read NewGauge3")
-	fmt.Println(id)
-	fmt.Println(mtype)
-	fmt.Println(delta)
-	fmt.Println(value)
-*/
+		//	row, err := stmtGetMetric.QueryRow("NewGauge3")
+		fmt.Println("Try to read NewGauge3")
+		fmt.Println(id)
+		fmt.Println(mtype)
+		fmt.Println(delta)
+		fmt.Println(value)
+	*/
 	db.db = conn
 	db.stmtInsGauge = stmtInsGauge
 	db.stmtInsCounter = stmtInsCounter
@@ -126,30 +127,30 @@ func NewDB(connStr string) (*DB, error) {
 	db.init = true
 	return db, nil
 }
-func (db *DB) ShowMetrics() error{
+func (db *DB) ShowMetrics() error {
 	rows, err := db.db.Query("SELECT * FROM metrics")
-	if err != nil{
+	if err != nil {
 		return err
 	}
 	defer rows.Close()
 	mSQL := metricSQL{}
-	for rows.Next(){
+	for rows.Next() {
 		newDelta := sql.NullInt64{}
 		newValue := sql.NullFloat64{}
-		err = rows.Scan(&mSQL.id, &mSQL.mtype, &newDelta, &newValue)	
-		if err!=nil{
+		err = rows.Scan(&mSQL.id, &mSQL.mtype, &newDelta, &newValue)
+		if err != nil {
 			continue
 		}
 		m := metrics.Metrics{ID: mSQL.id, MType: mSQL.mtype}
 		if mSQL.mtype == metrics.Gauge {
-			if newValue.Valid{
+			if newValue.Valid {
 				m.Value = &newValue.Float64
 				fmt.Println(m)
 			}
 			continue
 		}
 		if mSQL.mtype == metrics.Counter {
-			if newDelta.Valid{
+			if newDelta.Valid {
 				m.Delta = &newDelta.Int64
 				fmt.Println(m)
 			}
@@ -162,83 +163,151 @@ func (db *DB) ShowMetrics() error{
 func (db *DB) GetAllMetrics() ([]metrics.Metrics, error) {
 	var size int
 	err := db.db.QueryRow("SELECT COUNT(*) FROM metrics").Scan(&size)
-	if err != nil{
+	if err != nil {
 		return nil, err
-	}	
+	}
 	sM := make([]metrics.Metrics, 0, size+10)
 	rows, err := db.db.Query("SELECT * FROM metrics")
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	mSQL := metricSQL{}
-	for rows.Next(){
+	for rows.Next() {
 		newDelta := sql.NullInt64{}
 		newValue := sql.NullFloat64{}
-		err = rows.Scan(&mSQL.id, &mSQL.mtype, &newDelta, &newValue)	
-		if err!=nil{
+		err = rows.Scan(&mSQL.id, &mSQL.mtype, &newDelta, &newValue)
+		if err != nil {
 			continue
 		}
 		m := metrics.Metrics{ID: mSQL.id, MType: mSQL.mtype}
 		if mSQL.mtype == metrics.Gauge {
-			if newValue.Valid{
+			if newValue.Valid {
 				m.Value = &newValue.Float64
-						sM = append(sM, m)
+				sM = append(sM, m)
 			}
 			continue
 		}
 		if mSQL.mtype == metrics.Counter {
-			if newDelta.Valid{
+			if newDelta.Valid {
 				m.Delta = &newDelta.Int64
-						sM = append(sM, m)
+				sM = append(sM, m)
 			}
 			continue
 		}
 	}
-	fmt.Println(sM)	
-//	return sM, nil
+//	fmt.Println(sM)
+	//	return sM, nil
 	return sM, rows.Err()
 }
 
-func (db *DB) AddMetric(rt storage.RepositoryData) error{
-	
-	mSQL := metricSQL{} 
+
+func (db *DB) AddGroupOfMetrics(sM []metrics.Metrics) error {
+	tx, err := db.db.Begin()
+	if err != nil{
+		return err
+	}
+	defer tx.Rollback()
+
+	txStmtGetMetric := tx.Stmt(db.stmtGetMetric)
+	txStmtInsGauge := tx.Stmt(db.stmtInsGauge)
+	txStmtInsCounter := tx.Stmt(db.stmtInsCounter)
+	txStmtUpdGauge := tx.Stmt(db.stmtUpdGauge)
+	txStmtUpdCounter := tx.Stmt(db.stmtUpdCounter)
+
+	mSQL := metricSQL{}
+	for _, m := range sM{
+		err = txStmtGetMetric.QueryRow(m.Name()).Scan(&mSQL.id, &mSQL.mtype, &mSQL.delta, &mSQL.value)
+		if err != nil {
+			if m.Type() == metrics.Gauge {
+				_, err = txStmtInsGauge.Exec(m.Name(), metrics.Gauge, m.GaugeValue())
+				if err != nil {
+					return err
+				}
+				continue
+			}
+			if m.Type() == metrics.Counter {
+				_, err = txStmtInsCounter.Exec(m.Name(), metrics.Counter, m.CounterValue())
+				if err != nil {
+					return err
+				}
+				continue
+			}
+			return fmt.Errorf("wrong metric type ")
+		}
+		if m.Type() == metrics.Counter && mSQL.mtype == metrics.Counter {
+			if mSQL.delta.Valid {
+				m.AddCounterValue(mSQL.delta.Int64)
+			}
+		}
+		if m.Type() == metrics.Gauge {
+//			fmt.Println("Update Gauge ", m.Name(), "  ", m.GaugeValue())
+			_, err = txStmtUpdGauge.Exec(m.Name(), m.GaugeValue())
+			if err != nil {
+				return err
+			}
+			continue
+		}
+		if m.Type() == metrics.Counter {
+//			fmt.Println("Update Counter ", m.Name(), "  ", m.CounterValue())
+			_, err = txStmtUpdCounter.Exec(m.Name(), m.CounterValue())
+			if err != nil {
+				return err
+			}
+			continue
+		}
+		return fmt.Errorf("wrong metric type ")	
+	}
+	return tx.Commit()
+}
+
+
+
+
+func (db *DB) AddMetric(rt storage.RepositoryData) error {
+
+	mSQL := metricSQL{}
 	err := db.stmtGetMetric.QueryRow(rt.Name()).Scan(&mSQL.id, &mSQL.mtype, &mSQL.delta, &mSQL.value)
 	if err != nil {
-		if rt.Type() == metrics.Gauge{
+		if rt.Type() == metrics.Gauge {
 			_, err = db.stmtInsGauge.Exec(rt.Name(), metrics.Gauge, rt.GaugeValue())
-			if err != nil {
-				return err
-			}			
+			return err
+//			if err != nil {
+//				return err
+//			}
 		}
-		if rt.Type() == metrics.Counter{
+		if rt.Type() == metrics.Counter {
 			_, err = db.stmtInsCounter.Exec(rt.Name(), metrics.Counter, rt.CounterValue())
-			if err != nil {
-				return err
-			}			
+			return err
+//			if err != nil {
+//				return err
+//			}
 		}
 		return fmt.Errorf("wrong metric type ")
 	}
-	if rt.Type() == metrics.Counter && mSQL.mtype == metrics.Counter{
-		if mSQL.delta.Valid{
-			rt.AddCounterValue(mSQL.delta.Int64)	
+	if rt.Type() == metrics.Counter && mSQL.mtype == metrics.Counter {
+		if mSQL.delta.Valid {
+			rt.AddCounterValue(mSQL.delta.Int64)
 		}
 	}
-	if rt.Type() == metrics.Gauge{
-		fmt.Println("Updata Gauge ",rt.Name(),"  ",rt.GaugeValue())
-		_, err = db.stmtUpdGauge.Exec(rt.Name(),rt.GaugeValue())
-		if err != nil {
-			return err
-		}
-		return nil
+	if rt.Type() == metrics.Gauge {
+//		fmt.Println("Updata Gauge ", rt.Name(), "  ", rt.GaugeValue())
+		_, err = db.stmtUpdGauge.Exec(rt.Name(), rt.GaugeValue())
+		return err
+
+//		if err != nil {
+//			return err
+//		}
+//		return nil
 	}
-	if rt.Type() == metrics.Counter{
-		fmt.Println("Updata Counter ",rt.Name(),"  ",rt.CounterValue())
-		_, err = db.stmtUpdCounter.Exec(rt.Name(),rt.CounterValue())
-		if err != nil {
-			return err
-		}
-		return nil
+	if rt.Type() == metrics.Counter {
+//		fmt.Println("Updata Counter ", rt.Name(), "  ", rt.CounterValue())
+		_, err = db.stmtUpdCounter.Exec(rt.Name(), rt.CounterValue())
+		return err
+//		if err != nil {
+//			return err
+//		}
+//		return nil
 	}
 	return fmt.Errorf("wrong metric type ")
 }
