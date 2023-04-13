@@ -27,7 +27,11 @@ func (m Metrics) CheckHash(key string) (bool, error) {
 		return false, fmt.Errorf(" can't check hash for metric %v , error %v", m, err)
 	}
 	if m.Hash != hash {
-		return false, nil
+/*		fmt.Println("CheckHash error")
+		fmt.Println(m.Hash)
+		fmt.Println(hash)
+		fmt.Println("----------------------------")
+*/		return false, nil
 	}
 	return true, nil
 }
@@ -38,5 +42,6 @@ func (m *Metrics) SetHash(key string) error {
 		return fmt.Errorf(" can't set hash for metric %v , error %v", m, err)
 	}
 	m.Hash = hash
+//	fmt.Printf("Set hash for %s  hash %s\n", m, m.Hash)
 	return nil
 }

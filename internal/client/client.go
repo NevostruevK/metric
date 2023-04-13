@@ -109,15 +109,20 @@ func (c *clientJSON) SendMetric() (err error) {
 		endpoint.Path = "/update/"
 	}
 
-	for _, m := range c.obj {
+	for i, m := range c.obj {
 		if c.hashKey != "" {
-			if err = m.SetHash(c.hashKey); err != nil {
-				//			if err = c.obj.SetHash(c.hashKey); err != nil {
-				return fmt.Errorf(" can't set hash for metric %v , error %v", c.obj, err)
+			if err = c.obj[i].SetHash(c.hashKey); err != nil {
+					//				if err = m.SetHash(c.hashKey); err != nil {
+					//			if err = c.obj.SetHash(c.hashKey); err != nil {
+				return fmt.Errorf(" can't set hash for metric %v , error %v", m, err)
 			}
 		}
 	}
-	//	data, err := json.Marshal(c.obj)
+/*	fmt.Println("Agent out inf")
+	for _, m := range c.obj {
+		fmt.Printf("%s : hash %s\n", m, m.Hash)
+	}
+*/		//	data, err := json.Marshal(c.obj)
 	data, err := json.Marshal(c.obj)
 	if err != nil {
 		fmt.Println("SendMetric(JSON): marshal data error: ", err)
@@ -136,8 +141,11 @@ func (c *clientJSON) SendMetric() (err error) {
 	if errCompress != nil{
 		fmt.Println("can't compress data", err)
 	}else{
+		fmt.Println("Agent : Content-Encoding : gzip")
 		request.Header.Add("Content-Encoding", "gzip")
 	}
+	
+	request.Header.Add("Accept-Encoding", "gzip")
 
 	response, err := c.client.Do(request)
 	if err != nil {
@@ -152,6 +160,7 @@ func (c *clientJSON) SendMetric() (err error) {
 	}
 	if response.StatusCode != http.StatusOK {
 		if strings.Contains(response.Header.Get("Content-Encoding"), "gzip") {
+//			fmt.Println("Agent Decompress data")
 			body, err = fgzip.Decompress(body)
 			if err != nil {
 				fmt.Println("SendMetric(JSON): decompress data error: ", err)
@@ -160,5 +169,31 @@ func (c *clientJSON) SendMetric() (err error) {
 		}
 		fmt.Printf("SendMetric(JSON): read wrong response Status code: %d body %s\n", response.StatusCode, body)
 	}
+
+	if strings.Contains(response.Header.Get("Content-Encoding"), "gzip") {
+		fmt.Println("Need to decompress response body")
+		body, err = fgzip.Decompress(body)
+		if err != nil {
+			fmt.Println("SendMetric(JSON): decompress data error: ", err)
+			return err
+		}
+	}
+	if !strings.Contains(response.Header.Get("Content-Type"), "application/json") {
+		fmt.Println("Agent: response header Content-Type doesn't contain application/json")
+		return fmt.Errorf("Agent: response header Content-Type doesn't contain application/json")
+	}
+
+	sM := make([]metrics.Metrics, 0, 200)
+	
+	err = json.Unmarshal(body, &sM)
+	if err != nil {
+		fmt.Println("Agent: can't unmarshal body")
+		return fmt.Errorf("Agent: can't unmarshal body")
+	}
+	fmt.Println("get data:")
+	fmt.Println(sM)
+//	fmt.Println("get data:")
+//	fmt.Println(body)
+
 	return nil
 }

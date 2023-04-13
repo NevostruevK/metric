@@ -33,33 +33,34 @@ func GetMetricJSONHandler(s storage.Repository, hashKey string) http.HandlerFunc
 			return
 		}
 
-		sendResponse([]metrics.Metrics{*load}, hashKey, w, r)
+		sendResponse([]metrics.Metrics{*load}, false, hashKey, w, r)
 //		sendResponse(load, hashKey, w, r)
 	}
 }
 
 func AddBatchMetricJSONHandler(s storage.Repository, hashKey string, cap int) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-fmt.Println("AddBatchMetricJSONHandler start")
+//fmt.Println("AddBatchMetricJSONHandler start")
 		m, ok := getMetricFromRequest(w, r, hashKey, cap)
 		if !ok {
 			return
 		}
-fmt.Println("AddBatchMetricJSONHandler stage1")
-
+fmt.Println("AddBatchMetricJSONHandler input")
+fmt.Println("Size of m ",len(m))
+fmt.Println(m)
 		if err := s.AddGroupOfMetrics(m); err!=nil{
 			fmt.Println("AddGroupOfMetrics returned the error : ",err)
 			http.Error(w, fmt.Sprintf("AddGroupOfMetrics returned the error : %v",err), http.StatusInternalServerError)
 			return
 		}
-fmt.Println("AddBatchMetricJSONHandler stage2")
+//fmt.Println("AddBatchMetricJSONHandler stage2")
 
-		sendResponse(m, hashKey, w, r)
+		sendResponse(m, true, hashKey, w, r)
 //		fmt.Println(m)
 //		fmt.Fprintln(w, m)
 //		w.Write([]byte(""))
 //		fmt.Fprintln(w, "Batch of Metrucs was saved normaly")
-fmt.Println("AddBatchMetricJSONHandler stage3")
+//fmt.Println("AddBatchMetricJSONHandler stage3")
 	}
 }
 
@@ -90,7 +91,7 @@ func AddMetricJSONHandler(s storage.Repository, hashKey string) http.HandlerFunc
 			http.Error(w, fmt.Sprintf("AddMetric returned the error : %v",err), http.StatusInternalServerError)
 			return
 		}
-		sendResponse(sM, hashKey, w, r)
+		sendResponse(sM, false, hashKey, w, r)
 	}
 }
 
@@ -161,26 +162,34 @@ func getMetricFromRequest(w http.ResponseWriter, r *http.Request, hashKey string
 	return sM, true
 }
 
-func sendResponse(sM []metrics.Metrics, hashKey string, w http.ResponseWriter, r *http.Request) {
+func sendResponse(sM []metrics.Metrics, sendSlice bool, hashKey string, w http.ResponseWriter, r *http.Request) {
 
-	for _, m:=range sM{
+	for i, m:=range sM{
 		if hashKey != "" {
-			if err := m.SetHash(hashKey); err != nil {
-				http.Error(w, "Can't set hash", http.StatusInternalServerError)
+			if err := sM[i].SetHash(hashKey); err != nil {
+				http.Error(w, "Can't set hash for metric "+m.String(), http.StatusInternalServerError)
 				return
 			}
 		}	
 	}
 	var data []byte
 	var err error
-	if len(sM) == 1{
-		data, err = json.Marshal(sM[0])
+	if sendSlice{
+		fmt.Println("data, err = json.Marshal(&sM)")
+		data, err = json.Marshal(&sM)
 	}else{
-		data, err = json.Marshal(sM)
+		data, err = json.Marshal(sM[0])
 	}	
 	if err != nil {
 		http.Error(w, "Can't convert to JSON", http.StatusInternalServerError)
 		return
+	}
+	if sendSlice{
+		fmt.Printf("output %d\n",len(sM))
+		for _, m := range(sM){
+			fmt.Println(m.String(), "  hash :",m.Hash)
+		}
+//		fmt.Println(sM)
 	}
 	w.Write(data)
 }
