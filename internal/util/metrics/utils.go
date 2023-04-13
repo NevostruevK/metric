@@ -47,7 +47,7 @@ func Get(cr MetricCreater) []MetricCreater {
 	sM := make([]MetricCreater, 0, MetricsCount)
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)
-/*		sM = append(sM, cr.NewGaugeMetric("Alloc", float64(mem.Alloc)))
+		sM = append(sM, cr.NewGaugeMetric("Alloc", float64(mem.Alloc)))
 		sM = append(sM, cr.NewGaugeMetric("BuckHashSys", float64(mem.BuckHashSys)))
 		sM = append(sM, cr.NewGaugeMetric("Frees", float64(mem.Frees)))
 		sM = append(sM, cr.NewGaugeMetric("GCCPUFraction", float64(mem.GCCPUFraction)))
@@ -73,12 +73,12 @@ func Get(cr MetricCreater) []MetricCreater {
 		sM = append(sM, cr.NewGaugeMetric("StackInuse", float64(mem.StackInuse)))
 		sM = append(sM, cr.NewGaugeMetric("StackSys", float64(mem.StackSys)))
 		sM = append(sM, cr.NewGaugeMetric("Sys", float64(mem.Sys)))
-*/	sM = append(sM, cr.NewGaugeMetric("TotalAlloc", float64(mem.TotalAlloc)))
+	sM = append(sM, cr.NewGaugeMetric("TotalAlloc", float64(mem.TotalAlloc)))
 
 	getRequestCount++
 	sM = append(sM, cr.NewCounterMetric("PollCount", getRequestCount))
 
-//		sM = append(sM, cr.NewGaugeMetric("RandomValue", getRandomFloat64()))
+		sM = append(sM, cr.NewGaugeMetric("RandomValue", getRandomFloat64()))
 
 	return sM
 }
