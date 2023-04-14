@@ -16,7 +16,7 @@ func (m Metrics) CountHash(key string) (hash string, err error) {
 		return "", fmt.Errorf(" can't sign metric %v , type %s isnot implemented", m, m.MType)
 	}
 	if err != nil {
-		return "", fmt.Errorf(" can't sign metric %v , error %v", m, err)
+		return "", fmt.Errorf(" can't sign metric %v , error %w", m, err)
 	}
 	return
 }
@@ -24,14 +24,10 @@ func (m Metrics) CountHash(key string) (hash string, err error) {
 func (m Metrics) CheckHash(key string) (bool, error) {
 	hash, err := m.CountHash(key)
 	if err != nil {
-		return false, fmt.Errorf(" can't check hash for metric %v , error %v", m, err)
+		return false, fmt.Errorf(" can't check hash for metric %v , error %w", m, err)
 	}
 	if m.Hash != hash {
-/*		fmt.Println("CheckHash error")
-		fmt.Println(m.Hash)
-		fmt.Println(hash)
-		fmt.Println("----------------------------")
-*/		return false, nil
+		return false, nil
 	}
 	return true, nil
 }
@@ -39,9 +35,8 @@ func (m Metrics) CheckHash(key string) (bool, error) {
 func (m *Metrics) SetHash(key string) error {
 	hash, err := m.CountHash(key)
 	if err != nil {
-		return fmt.Errorf(" can't set hash for metric %v , error %v", m, err)
+		return fmt.Errorf(" can't set hash for metric %v , error %w", m, err)
 	}
 	m.Hash = hash
-//	fmt.Printf("Set hash for %s  hash %s\n", m, m.Hash)
 	return nil
 }

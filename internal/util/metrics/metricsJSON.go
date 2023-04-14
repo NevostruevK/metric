@@ -36,11 +36,17 @@ func (m *Metrics) CounterValue() int64 {
 	if m == nil {
 		return 0
 	}
+	if m.Delta == nil {
+		return 0
+	}
 	return *m.Delta
 }
 
 func (m *Metrics) GaugeValue() float64 {
 	if m == nil {
+		return 0
+	}
+	if m.Value == nil {
 		return 0
 	}
 	return *m.Value
@@ -63,6 +69,5 @@ func (m Metrics) StringValue() string {
 }
 
 func (m Metrics) String() string {
-
-	return m.Type() + "/" + m.Name() + "/" + m.StringValue()
+	return m.Name() + " : " + m.Type() + " : " + m.StringValue() + " : " + m.Hash
 }

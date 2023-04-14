@@ -61,7 +61,7 @@ func (c *clientText) SendMetric() (err error) {
 	endpoint := url.URL{
 		Scheme: "http",
 		Host:   c.address,
-		Path:   "/update/" + c.obj.String(),
+		Path:   "/update/" + c.obj.Type() + "/" + c.obj.Name() + "/" + c.obj.StringValue(),
 	}
 	request, err := http.NewRequest(http.MethodPost, endpoint.String(), nil)
 	if err != nil {

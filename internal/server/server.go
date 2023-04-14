@@ -3,6 +3,7 @@ package server
 import (
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/NevostruevK/metric/internal/db"
 	"github.com/NevostruevK/metric/internal/server/handlers"
@@ -14,10 +15,12 @@ const initialBatchMetricCapacity = 200
 
 func Start(s storage.Repository, db *db.DB, address, hashKey string) {
 
+	logger := log.New(os.Stdout, `server: `, log.LstdFlags)
 	r := chi.NewRouter()
 
 	handler := handlers.CompressHandle(r)
 	handler = handlers.DecompressHanlder(handler)
+	handler = handlers.LoggerHanlder(handler, logger)
 
 	server := &http.Server{
 		Addr:    address,
@@ -31,5 +34,5 @@ func Start(s storage.Repository, db *db.DB, address, hashKey string) {
 	r.Get("/value/{typeM}/{name}", handlers.GetMetricHandler(s))
 	r.Get("/ping", handlers.GetPingHandler(db))
 	r.Get("/", handlers.GetAllMetricsHandler(s))
-	log.Fatal(server.ListenAndServe())
+	logger.Fatal(server.ListenAndServe())
 }

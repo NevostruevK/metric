@@ -90,5 +90,5 @@ func (m BasicMetric) StringValue() string {
 }
 
 func (m BasicMetric) String() string {
-	return m.Type() + "/" + m.Name() + "/" + m.StringValue()
+	return m.Name() + " " + m.Type() + " " + m.StringValue()
 }

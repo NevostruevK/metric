@@ -77,14 +77,14 @@ func (s *MemStorage) Close() error {
 }
 
 func (s *MemStorage) AddGroupOfMetrics(sM []metrics.Metrics) error {
-	for _, m := range sM{
+	for _, m := range sM {
 		if m.Type() == metrics.Counter && s.data[m.Name()] != nil {
 			m.AddCounterValue(s.data[m.Name()].CounterValue())
 		}
 		s.data[m.Name()] = &m
 		if s.needToSyncWrite {
 			s.saver.WriteMetric(&m)
-		}		
+		}
 	}
 	return nil
 }
@@ -113,7 +113,7 @@ func (s *MemStorage) GetMetric(reqType, name string) (RepositoryData, error) {
 	return nil, fmt.Errorf("type %s : name %s is not valid metric type", reqType, name)
 }
 
-//func (s *MemStorage) GetAllMetrics() ([]RepositoryData, error) {
+// func (s *MemStorage) GetAllMetrics() ([]RepositoryData, error) {
 func (s *MemStorage) GetAllMetrics() ([]metrics.Metrics, error) {
 	sM := make([]metrics.Metrics, 0, len(s.data))
 	for _, m := range s.data {

@@ -2,7 +2,7 @@ package commands
 
 import (
 	"flag"
-	"fmt"
+	"log"
 	"os"
 	"time"
 
@@ -17,8 +17,8 @@ const (
 	defStoreInterval  = time.Second * 300
 	defRestore        = true
 	defKey            = ""
-	defDataBaseDSN    = ""
-//	defDataBaseDSN    = "user=postgres sslmode=disable"
+	//	defDataBaseDSN    = ""
+	defDataBaseDSN = "user=postgres sslmode=disable"
 )
 
 type Commands struct {
@@ -29,8 +29,8 @@ type Commands struct {
 	StoreInterval  time.Duration `env:"STORE_INTERVAL" envDefault:"300s"`
 	Restore        bool          `env:"RESTORE" envDefault:"true"`
 	Key            string        `env:"KEY" envDefault:""`
-//	DataBaseDSN    string        `env:"DATABASE_DSN" envDefault:"user=postgres sslmode=disable"`
-	DataBaseDSN string `env:"DATABASE_DSN" envDefault:""`
+	DataBaseDSN    string        `env:"DATABASE_DSN" envDefault:"user=postgres sslmode=disable"`
+	// DataBaseDSN string `env:"DATABASE_DSN" envDefault:""`
 }
 
 func GetAgentCommands() *Commands {
@@ -42,9 +42,6 @@ func GetAgentCommands() *Commands {
 
 	cmd := Commands{}
 	err := env.Parse(&cmd)
-	if err != nil {
-		fmt.Printf("Agent read environment with the error: %+v\n", err)
-	}
 	if _, ok := os.LookupEnv("ADDRESS"); !ok || err != nil {
 		cmd.Address = *addrPtr
 	}
@@ -57,6 +54,7 @@ func GetAgentCommands() *Commands {
 	if _, ok := os.LookupEnv("KEY"); !ok || err != nil {
 		cmd.Key = *keyPtr
 	}
+	logCommands(&cmd, false, err)
 	return &cmd
 }
 
@@ -72,9 +70,6 @@ func GetServerCommands() *Commands {
 	cmd := Commands{}
 	err := env.Parse(&cmd)
 
-	if err != nil {
-		fmt.Printf("Agent read environment with the error: %+v\n", err)
-	}
 	if _, ok := os.LookupEnv("ADDRESS"); !ok || err != nil {
 		cmd.Address = *addrPtr
 	}
@@ -93,5 +88,27 @@ func GetServerCommands() *Commands {
 	if _, ok := os.LookupEnv("DATABASE_DSN"); !ok || err != nil {
 		cmd.DataBaseDSN = *dataBasePtr
 	}
+	logCommands(&cmd, true, err)
 	return &cmd
+}
+
+func logCommands(cmd *Commands, isServer bool, err error) {
+
+	var logger *log.Logger
+	if isServer {
+		logger = log.New(os.Stdout, `server's flag : `, 0)
+		logger.Printf("RESTORE = %t\n", cmd.Restore)
+		logger.Printf("STORE_INTERVAL = %v\n", cmd.StoreInterval)
+		logger.Printf("STORE_FILE = %s\n", cmd.StoreFile)
+		logger.Printf("DATABASE_DSN = %s\n", cmd.DataBaseDSN)
+	} else {
+		logger = log.New(os.Stdout, `agent's flag : `, 0)
+		logger.Printf("REPORT_INTERVAL = %v\n", cmd.ReportInterval)
+		logger.Printf("POLL_INTERVAL = %v\n", cmd.PollInterval)
+	}
+	logger.Printf("ADDRESS = %s\n", cmd.Address)
+	logger.Printf("KEY = %s\n", cmd.Key)
+	if err != nil {
+		logger.Printf("ERROR : read environment with the error: %v\n", err)
+	}
 }
