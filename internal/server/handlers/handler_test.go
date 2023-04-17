@@ -3,11 +3,13 @@ package handlers
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/NevostruevK/metric/internal/storage"
+	"github.com/NevostruevK/metric/internal/util/logger"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -31,6 +33,7 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string) (int, s
 func TestRouter(t *testing.T) {
 	s := storage.NewMemStorage(false, false, "")
 	r := chi.NewRouter()
+	logger.NewServer(`server: `, log.LstdFlags)
 
 	r.Post("/update/{typeM}/{name}/{value}", AddMetricHandler(s))
 	r.Get("/value/{typeM}/{name}", GetMetricHandler(s))
@@ -52,17 +55,17 @@ func TestRouter(t *testing.T) {
 	fmt.Println("simple err POST update counter with the wrong type")
 	statusCode, body = testRequest(t, ts, "POST", "/update/int/testCounter/123456789")
 	assert.Equal(t, http.StatusNotImplemented, statusCode)
-	assert.Equal(t, "Type int is not implemented\n", body)
+	assert.Equal(t, "type int is not implemented\n", body)
 
 	fmt.Println("simple err POST param is missed")
 	statusCode, body = testRequest(t, ts, "POST", "/update/counter//123456789")
 	assert.Equal(t, http.StatusBadRequest, statusCode)
-	assert.Equal(t, "param is missed\n", body)
+	assert.Equal(t, "ERROR : AddMetricHandler param(s) is missed\n\n", body)
 
 	fmt.Println("simple err POST convert with error")
 	statusCode, body = testRequest(t, ts, "POST", "/update/counter/testCounter/one")
 	assert.Equal(t, http.StatusBadRequest, statusCode)
-	assert.Equal(t, "convert to counter value one with an error\n", body)
+	assert.Equal(t, "ERROR : AddMetricHandler:metrics.NewValueMetric() returned the error convert to counter with an error\n", body)
 
 	fmt.Println("simple ok  GET counter value")
 	statusCode, body = testRequest(t, ts, "GET", "/value/counter/testCounter")
@@ -77,15 +80,15 @@ func TestRouter(t *testing.T) {
 	fmt.Println("simple err GET param is missed")
 	statusCode, body = testRequest(t, ts, "GET", "/value//testCounter")
 	assert.Equal(t, http.StatusBadRequest, statusCode)
-	assert.Equal(t, "param(s) is missed\n", body)
+	assert.Equal(t, "ERROR : GetMetricHandler param(s) is missed \n\n", body)
 
 	fmt.Println("simple err GET value with a not implemented type")
 	statusCode, body = testRequest(t, ts, "GET", "/value/int/testCounter")
 	assert.Equal(t, http.StatusNotImplemented, statusCode)
-	assert.Equal(t, "Type int is not implemented\n", body)
+	assert.Equal(t, "type int is not implemented\n", body)
 
 	fmt.Println("simple err GET value not found")
 	statusCode, body = testRequest(t, ts, "GET", "/value/counter/unknownName")
 	assert.Equal(t, http.StatusNotFound, statusCode)
-	assert.Equal(t, "Type counter, Name unknownName not found\n", body)
+	assert.Equal(t, "ERROR : GetMetricHandler:GetMetric() returned the error type counter : name unknownName is not valid metric type\n", body)
 }

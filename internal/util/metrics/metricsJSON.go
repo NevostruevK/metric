@@ -69,5 +69,9 @@ func (m Metrics) StringValue() string {
 }
 
 func (m Metrics) String() string {
-	return m.Name() + " : " + m.Type() + " : " + m.StringValue() + " : " + m.Hash
+	return m.Type() + " : " + m.Name() + " : " + m.StringValue() + " : " + m.Hash
+}
+
+func (m Metrics) StringWithSlash() string {
+	return m.Type() + "/" + m.Name() + "/" + m.StringValue()
 }

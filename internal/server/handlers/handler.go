@@ -86,6 +86,7 @@ func GetMetricHandler(s storage.Repository) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "text/plain")
 		fmt.Fprintln(w, rt.StringValue())
+//		fmt.Fprintln(w, rt.Type() + "/" + rt.Name() + "/" + rt.StringValue())
 	}
 }
 
@@ -95,7 +96,7 @@ func AddMetricHandler(s storage.Repository) http.HandlerFunc {
 		name := chi.URLParam(r, "name")
 		value := chi.URLParam(r, "value")
 		if typeM == "" || name == "" || value == "" {
-			msg := fmt.Sprintln("ERROR : AddMetricHandler param(s) is missed ")
+			msg := fmt.Sprintln("ERROR : AddMetricHandler param(s) is missed")
 			logger.Server.Println(msg)
 			http.Error(w, msg, http.StatusBadRequest)
 			return
@@ -124,6 +125,7 @@ func AddMetricHandler(s storage.Repository) http.HandlerFunc {
 		}
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "text/plain")
-		fmt.Fprintln(w, m.String())
+//		fmt.Fprintln(w, m.String())
+		fmt.Fprintln(w, m.StringWithSlash())
 	}
 }

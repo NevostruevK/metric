@@ -17,12 +17,12 @@ func TestMetric_String(t *testing.T) {
 		{
 			name: "simple gauge metric",
 			m:    *metrics.NewGaugeMetric("GaugeMetric", 1.23456789),
-			want: fmt.Sprintf("gauge/GaugeMetric/%.3f", 1.23456789),
+			want: fmt.Sprintf("gauge GaugeMetric %.3f", 1.23456789),
 		},
 		{
 			name: "simple counter metric",
 			m:    *metrics.NewCounterMetric("CounterMetric", 23456789),
-			want: "counter/CounterMetric/23456789",
+			want: "counter CounterMetric 23456789",
 		},
 	}
 	for _, tt := range tests {

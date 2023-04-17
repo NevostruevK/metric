@@ -90,5 +90,9 @@ func (m BasicMetric) StringValue() string {
 }
 
 func (m BasicMetric) String() string {
-	return m.Name() + " " + m.Type() + " " + m.StringValue()
+	return m.Type() + " " + m.Name() + " " + m.StringValue()
+}
+
+func (m BasicMetric) StringWithSlash() string {
+	return m.Type() + "/" + m.Name() + "/" + m.StringValue()
 }

@@ -232,12 +232,12 @@ func (db *DB) AddMetric(rt storage.RepositoryData) error {
 	if err != nil {
 		if rt.Type() == metrics.Gauge {
 			_, err = db.stmtInsGauge.Exec(rt.Name(), metrics.Gauge, rt.GaugeValue())
-			db.logger.Printf("Inserted %s %s\n", rt, err)
+			db.logger.Printf("Inserted %s %v\n", rt, err)
 			return err
 		}
 		if rt.Type() == metrics.Counter {
 			_, err = db.stmtInsCounter.Exec(rt.Name(), metrics.Counter, rt.CounterValue())
-			db.logger.Printf("Inserted %s %s\n", rt, err)
+			db.logger.Printf("Inserted %s %v\n", rt, err)
 			return err
 		}
 		return fmt.Errorf("wrong metric type ")
