@@ -155,8 +155,8 @@ func sendResponse(w http.ResponseWriter, sM []metrics.Metrics, sendSlice bool, h
 	var data []byte
 	var err error
 	if sendSlice {
-//		data, err = json.Marshal(&sM)
-		data, err = json.Marshal(sM[0])
+		data, err = json.Marshal(&sM)
+//		data, err = json.Marshal(sM[0])
 	} else {
 		data, err = json.Marshal(sM[0])
 	}
