@@ -4,9 +4,9 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/NevostruevK/metric/internal/storage"
+	"github.com/NevostruevK/metric/internal/util/logger"
 	"github.com/NevostruevK/metric/internal/util/metrics"
 	_ "github.com/lib/pq"
 )
@@ -30,7 +30,7 @@ type DB struct {
 }
 
 func NewDB(connStr string) (*DB, error) {
-	db := &DB{db: nil, logger: log.New(os.Stdout, "postgres : ", log.LstdFlags|log.Lshortfile), init: false}
+	db := &DB{db: nil, logger: logger.NewLogger("postgres : ", log.LstdFlags|log.Lshortfile), init: false}
 	if connStr == "" {
 		db.logger.Println("DATABASE_DSN is empty, database wasn't initialized")
 		return db, fmt.Errorf(" Empty address data base")
@@ -77,7 +77,7 @@ func NewDB(connStr string) (*DB, error) {
 }
 
 func (db *DB) ShowMetrics() error {
-	l := log.New(os.Stdout, "", 0)
+	l := logger.NewLogger("", 0)
 	db.logger.Println("Show metrics")
 	rows, err := db.db.Query("SELECT * FROM metrics")
 	if err != nil {

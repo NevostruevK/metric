@@ -2,7 +2,9 @@ package storage
 
 import (
 	"fmt"
+	"log"
 
+	"github.com/NevostruevK/metric/internal/util/logger"
 	"github.com/NevostruevK/metric/internal/util/metrics"
 )
 
@@ -27,24 +29,26 @@ type Repository interface {
 type MemStorage struct {
 	data            map[string]RepositoryData
 	saver           *saver
+	logger         *log.Logger
 	needToSyncWrite bool
 }
 
 func NewMemStorage(restore, needToSyncWrite bool, filename string) *MemStorage {
+	lgr := logger.NewLogger("mem storage : ", log.LstdFlags|log.Lshortfile)
 	data := make(map[string]RepositoryData)
 	s, err := NewSaver(filename)
 	if err != nil {
-		fmt.Printf("Can't write metrics to %s\n", filename)
-		return &MemStorage{data: data, saver: s, needToSyncWrite: false}
+		lgr.Printf("Can't write metrics to %s\n", filename)
+		return &MemStorage{data: data, saver: s, logger: lgr, needToSyncWrite: false}
 	}
 	if filename == "" {
-		return &MemStorage{data: data, saver: s, needToSyncWrite: false}
+		return &MemStorage{data: data, saver: s, logger: lgr, needToSyncWrite: false}
 	}
 	if restore {
 		l, err := NewLoader(filename)
 		if err != nil {
-			fmt.Printf("Can't load metrics from %s\n", filename)
-		} else {
+			lgr.Printf("Can't load metrics from %s\n", filename)
+			} else {
 			defer l.Close()
 			for {
 				m, err := l.ReadMetric()
@@ -55,16 +59,19 @@ func NewMemStorage(restore, needToSyncWrite bool, filename string) *MemStorage {
 			}
 		}
 	}
-	return &MemStorage{data: data, saver: s, needToSyncWrite: needToSyncWrite}
+	return &MemStorage{data: data, saver: s, logger: lgr, needToSyncWrite: needToSyncWrite}
 }
 func (s *MemStorage) SaveAllIntoFile() (int, error) {
 	if s.saver == nil {
+		s.logger.Println("can't save metrics into file, saver wasn't initialized")
 		return 0, fmt.Errorf("can't save metrics into file, saver wasn't initialized")
 	}
 	count := 0
 	for _, m := range s.data {
 		if err := s.saver.WriteMetric(m); err != nil {
-			return count, fmt.Errorf("can't save metric into file, encoder error")
+			msg := fmt.Sprintf("ERROR : can't save metric into file, encoder error %v\n",err)
+			s.logger.Println(msg)			
+			return count, fmt.Errorf(msg)
 		}
 		count++
 	}
@@ -72,8 +79,7 @@ func (s *MemStorage) SaveAllIntoFile() (int, error) {
 }
 
 func (s *MemStorage) Close() error {
-	s.saver.Close()
-	return nil
+	return s.saver.Close()
 }
 
 func (s *MemStorage) AddGroupOfMetrics(sM []metrics.Metrics) error {
@@ -113,7 +119,6 @@ func (s *MemStorage) GetMetric(reqType, name string) (RepositoryData, error) {
 	return nil, fmt.Errorf("type %s : name %s is not valid metric type", reqType, name)
 }
 
-// func (s *MemStorage) GetAllMetrics() ([]RepositoryData, error) {
 func (s *MemStorage) GetAllMetrics() ([]metrics.Metrics, error) {
 	sM := make([]metrics.Metrics, 0, len(s.data))
 	for _, m := range s.data {
@@ -123,7 +128,9 @@ func (s *MemStorage) GetAllMetrics() ([]metrics.Metrics, error) {
 }
 
 func (s *MemStorage) ShowMetrics() {
-	for i, m := range s.data {
-		fmt.Println(i, m)
+	s.logger.Println("Show metrics")
+	lgr := logger.NewLogger("",0)
+	for _, m := range s.data {
+		lgr.Println(m)
 	}
 }

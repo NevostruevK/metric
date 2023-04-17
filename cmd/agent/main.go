@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -9,6 +9,7 @@ import (
 
 	"github.com/NevostruevK/metric/internal/client"
 	"github.com/NevostruevK/metric/internal/util/commands"
+	"github.com/NevostruevK/metric/internal/util/logger"
 	"github.com/NevostruevK/metric/internal/util/metrics"
 )
 
@@ -16,11 +17,13 @@ func main() {
 	gracefulShutdown := make(chan os.Signal, 1)
 	signal.Notify(gracefulShutdown, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
-	cmd := commands.GetAgentCommands()
+	lgr := logger.NewLogger("main : ", log.LstdFlags|log.Lshortfile)
+	lgr.Println(`Get server's flags`)
 
-	fmt.Printf("Agent get command %+v\n", cmd)
+	cmd, err := commands.GetAgentCommands()
+	logger.LogCommands(cmd, false, err)
+
 	a := client.NewAgent(cmd.Address, cmd.Key)
-	//	client.SetAddress(cmd.Address)
 	pollTicker := time.NewTicker(cmd.PollInterval)
 	reportTicker := time.NewTicker(cmd.ReportInterval)
 
@@ -30,20 +33,20 @@ func main() {
 	for {
 		select {
 		case <-pollTicker.C:
-			fmt.Println("Get Metric")
+			lgr.Println("Get Metrics")
 			sM = append(sM, metrics.Get(&mInit)...)
 		case <-reportTicker.C:
-			fmt.Println("Send Metric: ", len(sM))
+			lgr.Println("Send Metric: ", len(sM))
 			sendCount := client.SendMetrics(a, sM)
 			if sendCount == len(sM) {
 				metrics.ResetCounter()
 				sM = nil
 				break
 			}
-			fmt.Println("Send not All metrics ", sendCount, " from ", len(sM))
+			lgr.Println("Sent ", sendCount, "metrics from ", len(sM))
 			sM = sM[sendCount:]
 		case <-gracefulShutdown:
-			fmt.Println("Get Agent Signal!")
+			lgr.Println("Get Agent Signal!")
 			pollTicker.Stop()
 			reportTicker.Stop()
 			return

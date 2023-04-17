@@ -15,8 +15,9 @@ func GetPingHandler(db *db.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		if err := db.Ping(); err != nil {
-			logger.LogError("GetPingHandler : ", "db.Ping", err)
-			http.Error(w, fmt.Sprintf("Can't Ping database %v", err), http.StatusInternalServerError)
+			msg := fmt.Sprintf("Can't Ping database %v", err)
+			logger.Server.Println(msg)
+			http.Error(w, msg, http.StatusInternalServerError)
 			return
 		}
 		w.WriteHeader(http.StatusOK)
@@ -29,8 +30,9 @@ func GetAllMetricsHandler(s storage.Repository) http.HandlerFunc {
 		sm, err := s.GetAllMetrics()
 		if err != nil {
 			w.Header().Set("Content-Type", "text/plain")
-			logger.LogError("GetAllMetricsHandler : ", "s.GetAllMetrics()", err)
-			http.Error(w, fmt.Sprintf("Can't get all metrics  %v", err), http.StatusInternalServerError)
+			msg := fmt.Sprintf("ERROR : GetAllMetricsHandler:GetAllMetrics() returned the error %v", err)
+			logger.Server.Println(msg)
+			http.Error(w, msg, http.StatusInternalServerError)
 			return
 		}
 		w.Header().Set("Content-Type", "text/html")
@@ -62,21 +64,23 @@ func GetMetricHandler(s storage.Repository) http.HandlerFunc {
 		typeM := chi.URLParam(r, "typeM")
 		name := chi.URLParam(r, "name")
 		if typeM == "" || name == "" {
-			logger.LogError("GetMetricHandler : ", "param(s) is missed", nil)
-			http.Error(w, "param(s) is missed", http.StatusBadRequest)
+			msg := fmt.Sprintln("ERROR : GetMetricHandler param(s) is missed ")
+			logger.Server.Println(msg)
+			http.Error(w, msg, http.StatusBadRequest)
 			return
 		}
 		if isValidType := metrics.IsMetricType(typeM); !isValidType {
 			msg := fmt.Sprintf("type %s is not implemented", typeM)
-			logger.LogError("GetMetricHandler : ", msg, nil)
+			logger.Server.Println(msg)
 			http.Error(w, msg, http.StatusNotImplemented)
 			return
 		}
 
 		rt, err := s.GetMetric(typeM, name)
 		if err != nil {
-			logger.LogError("GetMetricHandler : ", "s.GetMetric()", err)
-			http.Error(w, err.Error(), http.StatusNotFound)
+			msg := fmt.Sprintf("ERROR : GetMetricHandler:GetMetric() returned the error %v", err)
+			logger.Server.Println(msg)
+			http.Error(w, msg, http.StatusNotFound)
 			return
 		}
 		w.WriteHeader(http.StatusOK)
@@ -91,29 +95,32 @@ func AddMetricHandler(s storage.Repository) http.HandlerFunc {
 		name := chi.URLParam(r, "name")
 		value := chi.URLParam(r, "value")
 		if typeM == "" || name == "" || value == "" {
-			logger.LogError("AddMetricHandler : ", "param(s) is missed", nil)
-			http.Error(w, "param is missed", http.StatusBadRequest)
+			msg := fmt.Sprintln("ERROR : AddMetricHandler param(s) is missed ")
+			logger.Server.Println(msg)
+			http.Error(w, msg, http.StatusBadRequest)
 			return
 		}
 
 		if isValidType := metrics.IsMetricType(typeM); !isValidType {
 			msg := fmt.Sprintf("type %s is not implemented", typeM)
-			logger.LogError("AddMetricHandler : ", msg, nil)
+			logger.Server.Println(msg)
 			http.Error(w, msg, http.StatusNotImplemented)
 			return
 		}
 
 		m, err := metrics.NewValueMetric(name, typeM, value)
 		if err != nil {
-			logger.LogError("AddMetricHandler : ", "metrics.NewValueMetric", err)
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			msg := fmt.Sprintf("ERROR : AddMetricHandler:metrics.NewValueMetric() returned the error %v", err)
+			logger.Server.Println(msg)
+			http.Error(w, msg, http.StatusBadRequest)
 			return
 
 		}
 
 		if err = s.AddMetric(m); err != nil {
-			logger.LogError("AddMetricHandler : ", "s.AddMetric", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			msg := fmt.Sprintf("ERROR : AddMetricHandler:metrics.AddMetric(m) returned the error %v", err)
+			logger.Server.Println(msg)
+			http.Error(w, msg, http.StatusInternalServerError)
 		}
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "text/plain")

@@ -4,39 +4,39 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/NevostruevK/metric/internal/storage"
+	"github.com/NevostruevK/metric/internal/util/logger"
 	"github.com/NevostruevK/metric/internal/util/metrics"
 )
 
 func GetMetricJSONHandler(s storage.Repository, hashKey string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		logger := log.New(os.Stdout, "GetMetricJSONHandler: ", log.LstdFlags)
-
 		sM, code, err := getMetricFromRequest(r, "", 1)
 		if err != nil {
-			logger.Println(" ERROR : ", err)
-			http.Error(w, fmt.Sprintf("GetMetricJSONHandler:getMetricFromRequest returned the error : %v", err), code)
+			msg := fmt.Sprintf(" ERROR : GetMetricJSONHandler:getMetricFromRequest returned the error : %v", err)
+			logger.Server.Println(msg)
+			http.Error(w, msg, code)
 			return
 		}
 		m := sM[0]
 		rt, err := s.GetMetric(m.MType, m.ID)
 		if err != nil {
-			logger.Println(" ERROR from repository : ", err)
-			http.Error(w, fmt.Sprintf("GetMetricJSONHandler:GetMetric returned the error : %v", err), http.StatusNotFound)
+			msg := fmt.Sprintf(" ERROR : GetMetricJSONHandler:GetMetric returned the error : %v", err)
+			logger.Server.Println(msg)
+			http.Error(w, msg, http.StatusNotFound)
 			return
 		}
 
 		m = rt.ConvertToMetrics()
 
 		if code, err = sendResponse(w, []metrics.Metrics{m}, false, hashKey); err != nil {
-			logger.Println(" ERROR : ", err)
-			http.Error(w, fmt.Sprintf("GetMetricJSONHandler:sendResponse returned the error : %v", err), code)
+			msg := fmt.Sprintf(" ERROR : GetMetricJSONHandler:sendResponse returned the error : %v", err)
+			logger.Server.Println(msg)
+			http.Error(w, msg, code)
 		}
 	}
 }
@@ -44,45 +44,48 @@ func GetMetricJSONHandler(s storage.Repository, hashKey string) http.HandlerFunc
 func AddBatchMetricJSONHandler(s storage.Repository, hashKey string, cap int) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		logger := log.New(os.Stdout, "AddBatchMetricJSONHandler: ", log.LstdFlags)
-
 		sM, code, err := getMetricFromRequest(r, hashKey, cap)
 		if err != nil {
-			logger.Println(" ERROR : ", err)
-			http.Error(w, fmt.Sprintf("AddBatchMetricJSONHandler:getMetricFromRequest returned the error : %v", err), code)
+			msg := fmt.Sprintf(" ERROR : AddBatchMetricJSONHandler:getMetricFromRequest returned the error : %v", err)
+			logger.Server.Println(msg)
+			http.Error(w, msg, code)
 			return
 		}
 
 		if err := s.AddGroupOfMetrics(sM); err != nil {
-			logger.Println(" ERROR from repository : ", err)
-			http.Error(w, fmt.Sprintf("AddBatchMetricJSONHandler:AddGroupOfMetrics returned the error : %v", err), http.StatusInternalServerError)
+			msg := fmt.Sprintf(" ERROR : AddBatchMetricJSONHandler:AddGroupOfMetrics returned the error : %v", err)
+			logger.Server.Println(msg)
+			http.Error(w, msg, http.StatusInternalServerError)
 			return
 		}
 
 		if code, err = sendResponse(w, sM, true, hashKey); err != nil {
-			logger.Println(" ERROR : ", err)
-			http.Error(w, fmt.Sprintf("AddBatchMetricJSONHandler:sendResponse returned the error : %v", err), code)
+			msg := fmt.Sprintf(" ERROR : AddBatchMetricJSONHandler:sendResponse returned the error : %v", err)
+			logger.Server.Println(msg)
+			http.Error(w, msg, code)
 		}
 	}
 }
 
 func AddMetricJSONHandler(s storage.Repository, hashKey string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		logger := log.New(os.Stdout, "AddMetricJSONHandler: ", log.LstdFlags)
 		sM, code, err := getMetricFromRequest(r, hashKey, 1)
 		if err != nil {
-			logger.Println(" ERROR : ", err)
-			http.Error(w, fmt.Sprintf("AddMetricJSONHandler:getMetricFromRequest returned the error : %v", err), code)
+			msg := fmt.Sprintf(" ERROR : AddMetricJSONHandler:getMetricFromRequest returned the error : %v", err)
+			logger.Server.Println(msg)
+			http.Error(w, msg, code)
 			return
 		}
 		if err := s.AddMetric(&sM[0]); err != nil {
-			logger.Println(" ERROR from repository : ", err)
-			http.Error(w, fmt.Sprintf("AddMetricJSONHandler:AddMetric returned the error : %v", err), http.StatusInternalServerError)
+			msg := fmt.Sprintf(" ERROR : AddMetricJSONHandler:AddMetric returned the error : %v", err)
+			logger.Server.Println(msg)
+			http.Error(w, msg, http.StatusInternalServerError)
 			return
 		}
 		if code, err = sendResponse(w, sM, false, hashKey); err != nil {
-			logger.Println(" ERROR : ", err)
-			http.Error(w, fmt.Sprintf("AddMetricJSONHandler:sendResponse returned the error : %v", err), code)
+			msg := fmt.Sprintf(" ERROR : AddMetricJSONHandler:sendResponse returned the error : %v", err)
+			logger.Server.Println(msg)
+			http.Error(w, msg, code)
 		}
 	}
 }
@@ -101,7 +104,9 @@ func getMetricFromRequest(r *http.Request, hashKey string, initialCapacity int) 
 
 	sM := make([]metrics.Metrics, 0, initialCapacity)
 
-	if initialCapacity == 1 {
+//	if initialCapacity == 1 {
+//	fmt.Println("getMetricFromRequest URL: ",r.URL.Path)
+	if r.URL.Path != "/updates/"{	
 		m := metrics.Metrics{}
 		err = json.Unmarshal(b, &m)
 		if err != nil {
@@ -150,7 +155,8 @@ func sendResponse(w http.ResponseWriter, sM []metrics.Metrics, sendSlice bool, h
 	var data []byte
 	var err error
 	if sendSlice {
-		data, err = json.Marshal(&sM)
+//		data, err = json.Marshal(&sM)
+		data, err = json.Marshal(sM[0])
 	} else {
 		data, err = json.Marshal(sM[0])
 	}

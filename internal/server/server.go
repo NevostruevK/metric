@@ -3,11 +3,11 @@ package server
 import (
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/NevostruevK/metric/internal/db"
 	"github.com/NevostruevK/metric/internal/server/handlers"
 	"github.com/NevostruevK/metric/internal/storage"
+	"github.com/NevostruevK/metric/internal/util/logger"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -15,7 +15,7 @@ const initialBatchMetricCapacity = 200
 
 func Start(s storage.Repository, db *db.DB, address, hashKey string) {
 
-	logger := log.New(os.Stdout, `server: `, log.LstdFlags)
+	logger := logger.NewServer(`server: `, log.LstdFlags)
 	r := chi.NewRouter()
 
 	handler := handlers.CompressHandle(r)
