@@ -24,7 +24,7 @@ func GetMetricJSONHandler(s storage.Repository, hashKey string) http.HandlerFunc
 			return
 		}
 		m := sM[0]
-		rt, err := s.GetMetric(m.MType, m.ID)
+		rt, err := s.GetMetric(context.Background(), m.MType, m.ID)
 		if err != nil {
 			msg := fmt.Sprintf(" ERROR : GetMetricJSONHandler:GetMetric returned the error : %v", err)
 			logger.Server.Println(msg)

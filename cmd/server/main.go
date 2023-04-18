@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -30,7 +31,7 @@ func main() {
 	st := &storage.MemStorage{}
 
 	lgr.Println(`Init database`)
-	db, err := db.NewDB(cmd.DataBaseDSN)
+	db, err := db.NewDB(context.Background(), cmd.DataBaseDSN)
 	if err != nil || cmd.DataBaseDSN == "" {
 		fmt.Println("Can't compleate DB connection: ", err)
 		if err != nil {
@@ -44,7 +45,7 @@ func main() {
 				lgr.Printf("ERROR : st.SaveAllIntoFile returned the error %v\n", err)
 			}
 			lgr.Printf("saved %d metrics\n", count)
-			st.ShowMetrics()
+			st.ShowMetrics(context.Background())
 			if err = st.Close(); err != nil {
 				lgr.Printf("ERROR : st.Close returned the error %v\n", err)
 			}
@@ -53,7 +54,7 @@ func main() {
 		go server.Start(st, db, cmd.Address, cmd.Key)
 	} else {
 		defer func() {
-			if err = db.ShowMetrics(); err != nil {
+			if err = db.ShowMetrics(context.Background()); err != nil {
 				lgr.Printf("ERROR : db.ShowMetrics returned the error %v\n", err)
 			}
 			if err = db.Close(); err != nil {

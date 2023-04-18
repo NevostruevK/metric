@@ -21,9 +21,9 @@ type RepositoryData interface {
 
 type Repository interface {
 	AddMetric(context.Context, RepositoryData) error
-	GetMetric(reqType, name string) (RepositoryData, error)
+	GetMetric(ctx context.Context, reqType, name string) (RepositoryData, error)
 	//	GetAllMetrics() ([]RepositoryData, error)
-	GetAllMetrics() ([]metrics.Metrics, error)
+	GetAllMetrics(context.Context) ([]metrics.Metrics, error)
 	AddGroupOfMetrics(ctx context.Context, sM []metrics.Metrics) error
 }
 
@@ -107,7 +107,7 @@ func (s *MemStorage) AddMetric(ctx context.Context, rt RepositoryData) error {
 	return nil
 }
 
-func (s *MemStorage) GetMetric(reqType, name string) (RepositoryData, error) {
+func (s *MemStorage) GetMetric(ctx context.Context, reqType, name string) (RepositoryData, error) {
 	if validType := metrics.IsMetricType(reqType); !validType {
 		return nil, fmt.Errorf("type %s is not valid metric type", reqType)
 	}
@@ -120,7 +120,7 @@ func (s *MemStorage) GetMetric(reqType, name string) (RepositoryData, error) {
 	return nil, fmt.Errorf("type %s : name %s is not valid metric type", reqType, name)
 }
 
-func (s *MemStorage) GetAllMetrics() ([]metrics.Metrics, error) {
+func (s *MemStorage) GetAllMetrics(context.Context) ([]metrics.Metrics, error) {
 	sM := make([]metrics.Metrics, 0, len(s.data))
 	for _, m := range s.data {
 		sM = append(sM, m.ConvertToMetrics())
@@ -128,7 +128,7 @@ func (s *MemStorage) GetAllMetrics() ([]metrics.Metrics, error) {
 	return sM, nil
 }
 
-func (s *MemStorage) ShowMetrics() {
+func (s *MemStorage) ShowMetrics(context.Context) {
 	s.logger.Println("Show metrics")
 	lgr := logger.NewLogger("",0)
 	for _, m := range s.data {

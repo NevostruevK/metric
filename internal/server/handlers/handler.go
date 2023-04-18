@@ -28,7 +28,7 @@ func GetPingHandler(db *db.DB) http.HandlerFunc {
 
 func GetAllMetricsHandler(s storage.Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		sm, err := s.GetAllMetrics()
+		sm, err := s.GetAllMetrics(context.Background())
 		if err != nil {
 			w.Header().Set("Content-Type", "text/plain")
 			msg := fmt.Sprintf("ERROR : GetAllMetricsHandler:GetAllMetrics() returned the error %v", err)
@@ -77,7 +77,7 @@ func GetMetricHandler(s storage.Repository) http.HandlerFunc {
 			return
 		}
 
-		rt, err := s.GetMetric(typeM, name)
+		rt, err := s.GetMetric(context.Background(), typeM, name)
 		if err != nil {
 			msg := fmt.Sprintf("ERROR : GetMetricHandler:GetMetric() returned the error %v", err)
 			logger.Server.Println(msg)

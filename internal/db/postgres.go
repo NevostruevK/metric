@@ -34,7 +34,7 @@ type DB struct {
 	init           bool
 }
 
-func NewDB(connStr string) (*DB, error) {
+func NewDB(ctx context.Context, connStr string) (*DB, error) {
 	db := &DB{db: nil, logger: logger.NewLogger("postgres : ", log.LstdFlags|log.Lshortfile), init: false}
 	if connStr == "" {
 		db.logger.Println("DATABASE_DSN is empty, database wasn't initialized")
@@ -45,11 +45,11 @@ func NewDB(connStr string) (*DB, error) {
 		return db, err
 	}
 
-	if _, err = conn.Exec(schemaSQL); err != nil {
+	if _, err = conn.ExecContext(ctx, schemaSQL); err != nil {
 		return db, err
 	}
 
-	stmtInsGauge, err := conn.Prepare(insertGaugeSQL)
+/*	stmtInsGauge, err := conn.Prepare(insertGaugeSQL)
 	if err != nil {
 		return db, err
 	}
@@ -57,11 +57,11 @@ func NewDB(connStr string) (*DB, error) {
 	if err != nil {
 		return db, err
 	}
-	stmtGetMetric, err := conn.Prepare(getMetricSQL)
+*/	stmtGetMetric, err := conn.PrepareContext(ctx, getMetricSQL)
 	if err != nil {
 		return db, err
 	}
-	stmtUpdGauge, err := conn.Prepare(updateGaugeSQL)
+/*	stmtUpdGauge, err := conn.Prepare(updateGaugeSQL)
 	if err != nil {
 		return db, err
 	}
@@ -70,21 +70,21 @@ func NewDB(connStr string) (*DB, error) {
 	if err != nil {
 		return db, err
 	}
-
+*/
 	db.db = conn
-	db.stmtInsGauge = stmtInsGauge
-	db.stmtInsCounter = stmtInsCounter
+//	db.stmtInsGauge = stmtInsGauge
+//	db.stmtInsCounter = stmtInsCounter
 	db.stmtGetMetric = stmtGetMetric
-	db.stmtUpdGauge = stmtUpdGauge
-	db.stmtUpdCounter = stmtUpdCounter
+//	db.stmtUpdGauge = stmtUpdGauge
+//	db.stmtUpdCounter = stmtUpdCounter
 	db.init = true
 	return db, nil
 }
 
-func (db *DB) ShowMetrics() error {
+func (db *DB) ShowMetrics(ctx context.Context) error {
 	l := logger.NewLogger("", 0)
 	db.logger.Println("Show metrics")
-	rows, err := db.db.Query("SELECT * FROM metrics")
+	rows, err := db.db.QueryContext(ctx, "SELECT * FROM metrics")
 	if err != nil {
 		db.logger.Println(err)
 		return err
@@ -118,15 +118,15 @@ func (db *DB) ShowMetrics() error {
 	return rows.Err()
 }
 
-func (db *DB) GetAllMetrics() ([]metrics.Metrics, error) {
+func (db *DB) GetAllMetrics(ctx context.Context) ([]metrics.Metrics, error) {
 	var size int
-	err := db.db.QueryRow("SELECT COUNT(*) FROM metrics").Scan(&size)
+	err := db.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM metrics").Scan(&size)
 	if err != nil {
 		db.logger.Println(err)
 		return nil, err
 	}
 	sM := make([]metrics.Metrics, 0, size+10)
-	rows, err := db.db.Query("SELECT * FROM metrics")
+	rows, err := db.db.QueryContext(ctx, "SELECT * FROM metrics")
 	if err != nil {
 		db.logger.Println(err)
 		return nil, err
@@ -184,74 +184,6 @@ func (db *DB) AddGroupOfMetrics(ctx context.Context, sM []metrics.Metrics) error
 		}
 	}
 	return tx.Commit()
-
-/*
-	tx, err := db.db.Begin()
-	if err != nil {
-		db.logger.Println(err)
-		return err
-	}
-	defer tx.Rollback()
-
-	txStmtGetMetric := tx.Stmt(db.stmtGetMetric)
-	txStmtInsGauge := tx.Stmt(db.stmtInsGauge)
-	txStmtInsCounter := tx.Stmt(db.stmtInsCounter)
-	txStmtUpdGauge := tx.Stmt(db.stmtUpdGauge)
-	txStmtUpdCounter := tx.Stmt(db.stmtUpdCounter)
-
-	mSQL := metricSQL{}
-	for _, m := range sM {
-		err = txStmtGetMetric.QueryRow(m.Name()).Scan(&mSQL.id, &mSQL.mtype, &mSQL.delta, &mSQL.value)
-		if err != nil {
-			if m.Type() == metrics.Gauge {
-				_, err = txStmtInsGauge.Exec(m.Name(), metrics.Gauge, m.GaugeValue())
-				if err != nil {
-					db.logger.Println(err)
-					return err
-				}
-				db.logger.Printf("Inserted %s\n", m)
-				continue
-			}
-			if m.Type() == metrics.Counter {
-				_, err = txStmtInsCounter.Exec(m.Name(), metrics.Counter, m.CounterValue())
-				if err != nil {
-					db.logger.Println(err)
-					return err
-				}
-				db.logger.Printf("Inserted %s\n", m)
-				continue
-			}
-			return fmt.Errorf("wrong metric type ")
-		}
-		if m.Type() == metrics.Counter && mSQL.mtype == metrics.Counter {
-			if mSQL.delta.Valid {
-				if err = m.AddCounterValue(mSQL.delta.Int64); err != nil {
-					db.logger.Println(err)
-				}
-			}
-		}
-		if m.Type() == metrics.Gauge {
-			_, err = txStmtUpdGauge.Exec(m.Name(), m.GaugeValue())
-			if err != nil {
-				db.logger.Println(err)
-				return err
-			}
-			db.logger.Printf("Updated %s\n", m)
-			continue
-		}
-		if m.Type() == metrics.Counter {
-			_, err = txStmtUpdCounter.Exec(m.Name(), m.CounterValue())
-			if err != nil {
-				db.logger.Println(err)
-				return err
-			}
-			db.logger.Printf("Updated %s\n", m)
-			continue
-		}
-		return fmt.Errorf("wrong metric type ")
-	}
-	return tx.Commit()
-*/	
 }
 
 
@@ -317,51 +249,14 @@ func (db *DB) AddMetric(ctx context.Context, rt storage.RepositoryData) error {
 	}
 	db.logger.Printf("Inserted %s \n", rt)
 	return tx.Commit()
-
-
-/*	
-	mSQL := metricSQL{}
-	err := db.stmtGetMetric.QueryRow(rt.Name()).Scan(&mSQL.id, &mSQL.mtype, &mSQL.delta, &mSQL.value)
-	if err != nil {
-		if rt.Type() == metrics.Gauge {
-			_, err = db.stmtInsGauge.Exec(rt.Name(), metrics.Gauge, rt.GaugeValue())
-			db.logger.Printf("Inserted %s %v\n", rt, err)
-			return err
-		}
-		if rt.Type() == metrics.Counter {
-			_, err = db.stmtInsCounter.Exec(rt.Name(), metrics.Counter, rt.CounterValue())
-			db.logger.Printf("Inserted %s %v\n", rt, err)
-			return err
-		}
-		return fmt.Errorf("wrong metric type ")
-	}
-	if rt.Type() == metrics.Counter && mSQL.mtype == metrics.Counter {
-		if mSQL.delta.Valid {
-			if err = rt.AddCounterValue(mSQL.delta.Int64); err != nil {
-				db.logger.Println(err)
-			}
-		}
-	}
-	if rt.Type() == metrics.Gauge {
-		_, err = db.stmtUpdGauge.Exec(rt.Name(), rt.GaugeValue())
-		db.logger.Printf("Updated %s %s\n", rt, err)
-		return err
-	}
-	if rt.Type() == metrics.Counter {
-		_, err = db.stmtUpdCounter.Exec(rt.Name(), rt.CounterValue())
-		db.logger.Printf("Updated %s %s\n", rt, err)
-		return err
-	}
-	return fmt.Errorf("wrong metric type ")
-*/	
 }
 
-func (db *DB) GetMetric(reqType, name string) (storage.RepositoryData, error) {
+func (db *DB) GetMetric(ctx context.Context, reqType, name string) (storage.RepositoryData, error) {
 	if validType := metrics.IsMetricType(reqType); !validType {
 		return nil, fmt.Errorf("type %s is not valid metric type", reqType)
 	}
 	mSQL := metricSQL{}
-	err := db.stmtGetMetric.QueryRow(name).Scan(&mSQL.id, &mSQL.mtype, &mSQL.delta, &mSQL.value)
+	err := db.stmtGetMetric.QueryRowContext(ctx, name).Scan(&mSQL.id, &mSQL.mtype, &mSQL.delta, &mSQL.value)
 	if err != nil {
 		return nil, fmt.Errorf("metric name %s is not found", name)
 	}
@@ -389,7 +284,7 @@ func (db *DB) GetMetric(reqType, name string) (storage.RepositoryData, error) {
 func (db *DB) Close() error {
 
 	if !db.init {
-		return fmt.Errorf(" Can't close DB : DataBase wasn't inited")
+		return fmt.Errorf(" Can't close DB : DataBase wasn't initiated")
 	}
 	db.stmtInsGauge.Close()
 	db.stmtInsCounter.Close()
@@ -404,7 +299,7 @@ func (db *DB) Close() error {
 
 func (db DB) Ping() error {
 	if !db.init {
-		return fmt.Errorf(" Can't ping DB : DataBase wasn't inited")
+		return fmt.Errorf(" Can't ping DB : DataBase wasn't initiated")
 	}
 	if err := db.db.Ping(); err != nil {
 		return fmt.Errorf(" Can't ping DB %w", err)
