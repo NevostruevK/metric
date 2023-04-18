@@ -53,7 +53,7 @@ func AddBatchMetricJSONHandler(s storage.Repository, hashKey string, cap int) ht
 			return
 		}
 
-		if err := s.AddGroupOfMetrics(sM); err != nil {
+		if err := s.AddGroupOfMetrics(context.Background(), sM); err != nil {
 			msg := fmt.Sprintf(" ERROR : AddBatchMetricJSONHandler:AddGroupOfMetrics returned the error : %v", err)
 			logger.Server.Println(msg)
 			http.Error(w, msg, http.StatusInternalServerError)

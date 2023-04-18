@@ -14,7 +14,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
-const errDuplicateId = `pq: duplicate key value violates unique constraint "metrics_id_key"`
+const errDuplicateID = `pq: duplicate key value violates unique constraint "metrics_id_key"`
 
 type metricSQL struct {
 	id    string
@@ -162,7 +162,30 @@ func (db *DB) GetAllMetrics() ([]metrics.Metrics, error) {
 	return sM, rows.Err()
 }
 
-func (db *DB) AddGroupOfMetrics(sM []metrics.Metrics) error {
+func (db *DB) AddGroupOfMetrics(ctx context.Context, sM []metrics.Metrics) error {
+	
+	tx, err := db.db.BeginTx(ctx, &sql.TxOptions{})
+	if err != nil {
+		db.logger.Println(err)
+		return err
+	}
+	defer func(){
+		err := tx.Rollback()
+		if !errors.Is(err, sql.ErrTxDone){
+			db.logger.Println(err)
+		}
+	}()
+	
+	for _, m := range sM{
+		err := db.AddMetric(ctx, &m)
+		if err != nil{
+			db.logger.Printf("ERROR : AddGroupOfMetrics:AddMetric : %v\n",err)			
+			return err
+		}
+	}
+	return tx.Commit()
+
+/*
 	tx, err := db.db.Begin()
 	if err != nil {
 		db.logger.Println(err)
@@ -228,7 +251,9 @@ func (db *DB) AddGroupOfMetrics(sM []metrics.Metrics) error {
 		return fmt.Errorf("wrong metric type ")
 	}
 	return tx.Commit()
+*/	
 }
+
 
 func (db *DB) AddMetric(ctx context.Context, rt storage.RepositoryData) error {
 	tx, err := db.db.BeginTx(ctx, &sql.TxOptions{})
@@ -247,18 +272,22 @@ func (db *DB) AddMetric(ctx context.Context, rt storage.RepositoryData) error {
 	case metrics.Gauge:
 		_, err := db.db.ExecContext(ctx, insertGaugeSQL, rt.Name(),  rt.GaugeValue())
 		if err != nil{
-			if !strings.Contains(err.Error(), errDuplicateId){
+			if !strings.Contains(err.Error(), errDuplicateID){
 				db.logger.Printf("ERROR : Inserted %s %v\n", rt, err)
 				return err
 			}
 			_, err = db.db.ExecContext(ctx, updateGaugeSQL, rt.Name(), rt.GaugeValue())
-			db.logger.Printf("Updated %s %s\n", rt, err)
-			return err	
+			if err != nil{
+				db.logger.Printf("ERROR : Updated %s %v\n", rt, err)
+				return err
+			}
+			db.logger.Printf("Updated %s \n", rt)
+			return tx.Commit()
 		} 
 	case metrics.Counter:
 		_, err := db.db.ExecContext(ctx, insertCounterSQL, rt.Name(), rt.CounterValue())
 		if err != nil{
-			if !strings.Contains(err.Error(), errDuplicateId){
+			if !strings.Contains(err.Error(), errDuplicateID){
 				db.logger.Printf("ERROR : Inserted %s %v\n", rt, err)
 				return err
 			}
@@ -274,8 +303,12 @@ func (db *DB) AddMetric(ctx context.Context, rt storage.RepositoryData) error {
 				}
 			}				
 			_, err = db.db.ExecContext(ctx, updateCounterSQL, rt.Name(), rt.CounterValue())
-			db.logger.Printf("Updated %s %s\n", rt, err)
-			return err	
+			if err != nil{
+				db.logger.Printf("ERROR : Updated %s %v\n", rt, err)
+				return err
+			}
+			db.logger.Printf("Updated %s \n", rt)
+			return tx.Commit()
 		}
 	default:
 		msg := fmt.Sprintf("ERROR : AddMetric is not implemented for type %s\n",rt.Type())
@@ -283,7 +316,7 @@ func (db *DB) AddMetric(ctx context.Context, rt storage.RepositoryData) error {
 		return fmt.Errorf(msg)
 	}
 	db.logger.Printf("Inserted %s \n", rt)
-	return nil
+	return tx.Commit()
 
 
 /*	

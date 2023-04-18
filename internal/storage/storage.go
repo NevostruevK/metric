@@ -24,7 +24,7 @@ type Repository interface {
 	GetMetric(reqType, name string) (RepositoryData, error)
 	//	GetAllMetrics() ([]RepositoryData, error)
 	GetAllMetrics() ([]metrics.Metrics, error)
-	AddGroupOfMetrics(sM []metrics.Metrics) error
+	AddGroupOfMetrics(ctx context.Context, sM []metrics.Metrics) error
 }
 
 type MemStorage struct {
@@ -83,7 +83,7 @@ func (s *MemStorage) Close() error {
 	return s.saver.Close()
 }
 
-func (s *MemStorage) AddGroupOfMetrics(sM []metrics.Metrics) error {
+func (s *MemStorage) AddGroupOfMetrics(ctx context.Context, sM []metrics.Metrics) error {
 	for _, m := range sM {
 		if m.Type() == metrics.Counter && s.data[m.Name()] != nil {
 			m.AddCounterValue(s.data[m.Name()].CounterValue())
