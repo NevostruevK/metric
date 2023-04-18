@@ -28,7 +28,7 @@ func CompressHandle(next http.Handler) http.Handler {
 
 		gz, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
 		if err != nil {
-			msg := fmt.Sprintf("ERROR : CompressHandle:gzip.NewWriterLevel returnen the error : %v",err)
+			msg := fmt.Sprintf("ERROR : CompressHandle:gzip.NewWriterLevel returnen the error : %v", err)
 			logger.Server.Println(msg)
 			io.WriteString(w, msg)
 			return
@@ -48,7 +48,7 @@ func DecompressHanlder(next http.Handler) http.Handler {
 		}
 		gz, err := gzip.NewReader(r.Body)
 		if err != nil {
-			msg := fmt.Sprintf("ERROR : DecompressHanlder:gzip.NewReader returnen the error : %v",err)
+			msg := fmt.Sprintf("ERROR : DecompressHanlder:gzip.NewReader returnen the error : %v", err)
 			logger.Server.Println(msg)
 			io.WriteString(w, msg)
 			return

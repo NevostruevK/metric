@@ -31,22 +31,11 @@ func LogCommands(cmd *commands.Commands, isServer bool, err error) {
 	}
 }
 
-func NewLogger(name string, flags int) *log.Logger{
+func NewLogger(name string, flags int) *log.Logger {
 	return log.New(logWriter, name, flags)
 }
 
-func NewServer(name string, flags int) *log.Logger{
+func NewServer(name string, flags int) *log.Logger {
 	Server = log.New(logWriter, name, flags)
 	return Server
 }
-
-/*func LogError(name, obj string, err error) {
-//	logger := log.New(os.Stdout, name, log.LstdFlags)
-	logger := log.New(logWriter, name, log.LstdFlags)
-	if err != nil {
-		logger.Printf("ERROR : %s returned the error : %v", obj, err)
-	} else {
-		logger.Printf("ERROR : %s ", obj)
-	}
-}
-*/

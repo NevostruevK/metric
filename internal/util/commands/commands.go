@@ -16,8 +16,7 @@ const (
 	defStoreInterval  = time.Second * 300
 	defRestore        = true
 	defKey            = ""
-//	defDataBaseDSN    = ""
-	defDataBaseDSN = "user=postgres sslmode=disable"
+	defDataBaseDSN    = ""
 )
 
 type Commands struct {
@@ -28,8 +27,7 @@ type Commands struct {
 	StoreInterval  time.Duration `env:"STORE_INTERVAL" envDefault:"300s"`
 	Restore        bool          `env:"RESTORE" envDefault:"true"`
 	Key            string        `env:"KEY" envDefault:""`
-	DataBaseDSN    string        `env:"DATABASE_DSN" envDefault:"user=postgres sslmode=disable"`
-//	 DataBaseDSN string `env:"DATABASE_DSN" envDefault:""`
+	DataBaseDSN    string        `env:"DATABASE_DSN" envDefault:""`
 }
 
 func GetAgentCommands() (*Commands, error) {
@@ -53,7 +51,6 @@ func GetAgentCommands() (*Commands, error) {
 	if _, ok := os.LookupEnv("KEY"); !ok || err != nil {
 		cmd.Key = *keyPtr
 	}
-//	logCommands(&cmd, false, err)
 	return &cmd, err
 }
 

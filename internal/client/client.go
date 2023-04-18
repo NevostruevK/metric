@@ -19,11 +19,11 @@ type Agent struct {
 	client  *http.Client
 	address string
 	hashKey string
-	logger *log.Logger
+	logger  *log.Logger
 }
 
 func NewAgent(address, hashKey string) *Agent {
-	return &Agent{client: &http.Client{}, address: address, hashKey: hashKey, logger: logger.NewLogger("agent : ",log.LstdFlags|log.Lshortfile)}
+	return &Agent{client: &http.Client{}, address: address, hashKey: hashKey, logger: logger.NewLogger("agent : ", log.LstdFlags|log.Lshortfile)}
 }
 
 func SendMetrics(a *Agent, sM []metrics.MetricCreater) int {

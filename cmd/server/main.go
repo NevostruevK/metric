@@ -26,7 +26,6 @@ func main() {
 	cmd, err := commands.GetServerCommands()
 	logger.LogCommands(cmd, true, err)
 
-
 	storeInterval := time.NewTicker(cmd.StoreInterval)
 	st := &storage.MemStorage{}
 

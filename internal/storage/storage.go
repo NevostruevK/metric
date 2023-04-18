@@ -22,7 +22,6 @@ type RepositoryData interface {
 type Repository interface {
 	AddMetric(context.Context, RepositoryData) error
 	GetMetric(ctx context.Context, reqType, name string) (RepositoryData, error)
-	//	GetAllMetrics() ([]RepositoryData, error)
 	GetAllMetrics(context.Context) ([]metrics.Metrics, error)
 	AddGroupOfMetrics(ctx context.Context, sM []metrics.Metrics) error
 }
@@ -30,7 +29,7 @@ type Repository interface {
 type MemStorage struct {
 	data            map[string]RepositoryData
 	saver           *saver
-	logger         *log.Logger
+	logger          *log.Logger
 	needToSyncWrite bool
 }
 
@@ -49,7 +48,7 @@ func NewMemStorage(restore, needToSyncWrite bool, filename string) *MemStorage {
 		l, err := NewLoader(filename)
 		if err != nil {
 			lgr.Printf("Can't load metrics from %s\n", filename)
-			} else {
+		} else {
 			defer l.Close()
 			for {
 				m, err := l.ReadMetric()
@@ -70,8 +69,8 @@ func (s *MemStorage) SaveAllIntoFile() (int, error) {
 	count := 0
 	for _, m := range s.data {
 		if err := s.saver.WriteMetric(m); err != nil {
-			msg := fmt.Sprintf("ERROR : can't save metric into file, encoder error %v\n",err)
-			s.logger.Println(msg)			
+			msg := fmt.Sprintf("ERROR : can't save metric into file, encoder error %v\n", err)
+			s.logger.Println(msg)
 			return count, fmt.Errorf(msg)
 		}
 		count++
@@ -85,12 +84,8 @@ func (s *MemStorage) Close() error {
 
 func (s *MemStorage) AddGroupOfMetrics(ctx context.Context, sM []metrics.Metrics) error {
 	for _, m := range sM {
-		if m.Type() == metrics.Counter && s.data[m.Name()] != nil {
-			m.AddCounterValue(s.data[m.Name()].CounterValue())
-		}
-		s.data[m.Name()] = &m
-		if s.needToSyncWrite {
-			s.saver.WriteMetric(&m)
+		if err := s.AddMetric(ctx, &m); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -130,7 +125,7 @@ func (s *MemStorage) GetAllMetrics(context.Context) ([]metrics.Metrics, error) {
 
 func (s *MemStorage) ShowMetrics(context.Context) {
 	s.logger.Println("Show metrics")
-	lgr := logger.NewLogger("",0)
+	lgr := logger.NewLogger("", 0)
 	for _, m := range s.data {
 		lgr.Println(m)
 	}

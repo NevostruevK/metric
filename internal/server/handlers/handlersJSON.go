@@ -105,9 +105,7 @@ func getMetricFromRequest(r *http.Request, hashKey string, initialCapacity int) 
 
 	sM := make([]metrics.Metrics, 0, initialCapacity)
 
-//	if initialCapacity == 1 {
-//	fmt.Println("getMetricFromRequest URL: ",r.URL.Path)
-	if r.URL.Path != "/updates/"{	
+	if r.URL.Path != "/updates/" {
 		m := metrics.Metrics{}
 		err = json.Unmarshal(b, &m)
 		if err != nil {
@@ -157,7 +155,6 @@ func sendResponse(w http.ResponseWriter, sM []metrics.Metrics, sendSlice bool, h
 	var err error
 	if sendSlice {
 		data, err = json.Marshal(&sM)
-//		data, err = json.Marshal(sM[0])
 	} else {
 		data, err = json.Marshal(sM[0])
 	}

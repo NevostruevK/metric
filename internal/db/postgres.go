@@ -24,14 +24,10 @@ type metricSQL struct {
 }
 
 type DB struct {
-	db             *sql.DB
-	stmtInsGauge   *sql.Stmt
-	stmtInsCounter *sql.Stmt
-	stmtGetMetric  *sql.Stmt
-	stmtUpdGauge   *sql.Stmt
-	stmtUpdCounter *sql.Stmt
-	logger         *log.Logger
-	init           bool
+	db            *sql.DB
+	stmtGetMetric *sql.Stmt
+	logger        *log.Logger
+	init          bool
 }
 
 func NewDB(ctx context.Context, connStr string) (*DB, error) {
@@ -49,34 +45,12 @@ func NewDB(ctx context.Context, connStr string) (*DB, error) {
 		return db, err
 	}
 
-/*	stmtInsGauge, err := conn.Prepare(insertGaugeSQL)
+	stmtGetMetric, err := conn.PrepareContext(ctx, getMetricSQL)
 	if err != nil {
 		return db, err
 	}
-	stmtInsCounter, err := conn.Prepare(insertCounterSQL)
-	if err != nil {
-		return db, err
-	}
-*/	stmtGetMetric, err := conn.PrepareContext(ctx, getMetricSQL)
-	if err != nil {
-		return db, err
-	}
-/*	stmtUpdGauge, err := conn.Prepare(updateGaugeSQL)
-	if err != nil {
-		return db, err
-	}
-
-	stmtUpdCounter, err := conn.Prepare(updateCounterSQL)
-	if err != nil {
-		return db, err
-	}
-*/
 	db.db = conn
-//	db.stmtInsGauge = stmtInsGauge
-//	db.stmtInsCounter = stmtInsCounter
 	db.stmtGetMetric = stmtGetMetric
-//	db.stmtUpdGauge = stmtUpdGauge
-//	db.stmtUpdCounter = stmtUpdCounter
 	db.init = true
 	return db, nil
 }
@@ -163,29 +137,28 @@ func (db *DB) GetAllMetrics(ctx context.Context) ([]metrics.Metrics, error) {
 }
 
 func (db *DB) AddGroupOfMetrics(ctx context.Context, sM []metrics.Metrics) error {
-	
+
 	tx, err := db.db.BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
 		db.logger.Println(err)
 		return err
 	}
-	defer func(){
+	defer func() {
 		err := tx.Rollback()
-		if !errors.Is(err, sql.ErrTxDone){
+		if !errors.Is(err, sql.ErrTxDone) {
 			db.logger.Println(err)
 		}
 	}()
-	
-	for _, m := range sM{
+
+	for _, m := range sM {
 		err := db.AddMetric(ctx, &m)
-		if err != nil{
-			db.logger.Printf("ERROR : AddGroupOfMetrics:AddMetric : %v\n",err)			
+		if err != nil {
+			db.logger.Printf("ERROR : AddGroupOfMetrics:AddMetric : %v\n", err)
 			return err
 		}
 	}
 	return tx.Commit()
 }
-
 
 func (db *DB) AddMetric(ctx context.Context, rt storage.RepositoryData) error {
 	tx, err := db.db.BeginTx(ctx, &sql.TxOptions{})
@@ -193,38 +166,38 @@ func (db *DB) AddMetric(ctx context.Context, rt storage.RepositoryData) error {
 		db.logger.Println(err)
 		return err
 	}
-	defer func(){
+	defer func() {
 		err := tx.Rollback()
-		if !errors.Is(err, sql.ErrTxDone){
+		if !errors.Is(err, sql.ErrTxDone) {
 			db.logger.Println(err)
 		}
 	}()
 
-	switch rt.Type(){
+	switch rt.Type() {
 	case metrics.Gauge:
-		_, err := db.db.ExecContext(ctx, insertGaugeSQL, rt.Name(),  rt.GaugeValue())
-		if err != nil{
-			if !strings.Contains(err.Error(), errDuplicateID){
+		_, err := db.db.ExecContext(ctx, insertGaugeSQL, rt.Name(), rt.GaugeValue())
+		if err != nil {
+			if !strings.Contains(err.Error(), errDuplicateID) {
 				db.logger.Printf("ERROR : Inserted %s %v\n", rt, err)
 				return err
 			}
 			_, err = db.db.ExecContext(ctx, updateGaugeSQL, rt.Name(), rt.GaugeValue())
-			if err != nil{
+			if err != nil {
 				db.logger.Printf("ERROR : Updated %s %v\n", rt, err)
 				return err
 			}
 			db.logger.Printf("Updated %s \n", rt)
 			return tx.Commit()
-		} 
+		}
 	case metrics.Counter:
 		_, err := db.db.ExecContext(ctx, insertCounterSQL, rt.Name(), rt.CounterValue())
-		if err != nil{
-			if !strings.Contains(err.Error(), errDuplicateID){
+		if err != nil {
+			if !strings.Contains(err.Error(), errDuplicateID) {
 				db.logger.Printf("ERROR : Inserted %s %v\n", rt, err)
 				return err
 			}
 			mSQL := metricSQL{}
-			if err = db.db.QueryRowContext(ctx, getCounterMetricSQL, rt.Name()).Scan(&mSQL.mtype, &mSQL.delta); err != nil{
+			if err = db.db.QueryRowContext(ctx, getCounterMetricSQL, rt.Name()).Scan(&mSQL.mtype, &mSQL.delta); err != nil {
 				db.logger.Printf("ERROR : getCounterMetricSQL %s %v\n", rt, err)
 				return err
 			}
@@ -233,9 +206,9 @@ func (db *DB) AddMetric(ctx context.Context, rt storage.RepositoryData) error {
 					db.logger.Printf("ERROR : AddCounterValue %s %v\n", rt, err)
 					return err
 				}
-			}				
+			}
 			_, err = db.db.ExecContext(ctx, updateCounterSQL, rt.Name(), rt.CounterValue())
-			if err != nil{
+			if err != nil {
 				db.logger.Printf("ERROR : Updated %s %v\n", rt, err)
 				return err
 			}
@@ -243,7 +216,7 @@ func (db *DB) AddMetric(ctx context.Context, rt storage.RepositoryData) error {
 			return tx.Commit()
 		}
 	default:
-		msg := fmt.Sprintf("ERROR : AddMetric is not implemented for type %s\n",rt.Type())
+		msg := fmt.Sprintf("ERROR : AddMetric is not implemented for type %s\n", rt.Type())
 		db.logger.Println(msg)
 		return fmt.Errorf(msg)
 	}
@@ -286,11 +259,7 @@ func (db *DB) Close() error {
 	if !db.init {
 		return fmt.Errorf(" Can't close DB : DataBase wasn't initiated")
 	}
-	db.stmtInsGauge.Close()
-	db.stmtInsCounter.Close()
 	db.stmtGetMetric.Close()
-	db.stmtUpdGauge.Close()
-	db.stmtUpdCounter.Close()
 	if err := db.db.Close(); err != nil {
 		return fmt.Errorf(" Can't close DB %w", err)
 	}

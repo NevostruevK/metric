@@ -1,8 +1,5 @@
 package db
 
-// CREATE TABLE IF NOT EXISTS metrics (
-// CREATE TYPE metric_type AS ENUM ('gauge', 'counter');
-
 const (
 	schemaSQL = `
 	DO $$ BEGIN
