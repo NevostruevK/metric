@@ -23,7 +23,7 @@ CREATE INDEX IF NOT EXISTS metrics_id ON metrics(id);
 INSERT INTO metrics (
 	id, mType, value
 ) VALUES (
-	$1, $2, $3
+	$1, 'gauge', $2
 )
 `
 
@@ -31,18 +31,23 @@ INSERT INTO metrics (
 INSERT INTO metrics (
 	id, mType, delta
 ) VALUES (
-	$1, $2, $3
+	$1, 'counter', $2
 )
 `
 
 	getMetricSQL = `
-SELECT * FROM metrics WHERE id = $1 
+SELECT * FROM metrics WHERE id = $1 LIMIT(1) 
 `
+
+	getCounterMetricSQL = `
+SELECT mType, delta FROM metrics WHERE id = $1 LIMIT(1)
+`
+
 	updateGaugeSQL = `
-UPDATE metrics SET id = $1, mType = 'gauge', value = $2 WHERE id = $1
+UPDATE metrics SET mType = 'gauge', value = $2 WHERE id = $1
 	`
 
 	updateCounterSQL = `
-UPDATE metrics SET id = $1, mType = 'counter', delta = $2 WHERE id = $1
+UPDATE metrics SET mType = 'counter', delta = $2 WHERE id = $1
 	`
 )

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -76,7 +77,7 @@ func AddMetricJSONHandler(s storage.Repository, hashKey string) http.HandlerFunc
 			http.Error(w, msg, code)
 			return
 		}
-		if err := s.AddMetric(&sM[0]); err != nil {
+		if err := s.AddMetric(context.Background(), &sM[0]); err != nil {
 			msg := fmt.Sprintf(" ERROR : AddMetricJSONHandler:AddMetric returned the error : %v", err)
 			logger.Server.Println(msg)
 			http.Error(w, msg, http.StatusInternalServerError)

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -118,7 +119,7 @@ func AddMetricHandler(s storage.Repository) http.HandlerFunc {
 
 		}
 
-		if err = s.AddMetric(m); err != nil {
+		if err = s.AddMetric(context.Background(), m); err != nil {
 			msg := fmt.Sprintf("ERROR : AddMetricHandler:metrics.AddMetric(m) returned the error %v", err)
 			logger.Server.Println(msg)
 			http.Error(w, msg, http.StatusInternalServerError)

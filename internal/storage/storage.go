@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -19,7 +20,7 @@ type RepositoryData interface {
 }
 
 type Repository interface {
-	AddMetric(RepositoryData) error
+	AddMetric(context.Context, RepositoryData) error
 	GetMetric(reqType, name string) (RepositoryData, error)
 	//	GetAllMetrics() ([]RepositoryData, error)
 	GetAllMetrics() ([]metrics.Metrics, error)
@@ -95,7 +96,7 @@ func (s *MemStorage) AddGroupOfMetrics(sM []metrics.Metrics) error {
 	return nil
 }
 
-func (s *MemStorage) AddMetric(rt RepositoryData) error {
+func (s *MemStorage) AddMetric(ctx context.Context, rt RepositoryData) error {
 	if rt.Type() == metrics.Counter && s.data[rt.Name()] != nil {
 		rt.AddCounterValue(s.data[rt.Name()].CounterValue())
 	}
