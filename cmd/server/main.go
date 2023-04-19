@@ -64,9 +64,10 @@ func main() {
 		storeInterval.Stop()
 		s = server.NewServer(db, cmd.Address, cmd.Key)
 	}
-	lgr.Printf("Start server %v", s)
-	//	go s.Start()
-	go lgr.Fatal(s.ListenAndServe())
+	lgr.Printf("Start server")
+	go func() {
+		go lgr.Println(s.ListenAndServe())
+	}()
 
 	for {
 		select {
@@ -81,6 +82,8 @@ func main() {
 			storeInterval.Stop()
 			if err = s.Shutdown(context.Background()); err != nil {
 				lgr.Printf("ERROR : Server Shutdown error %v", err)
+			}else{
+				lgr.Printf("Server Shutdown ")
 			}
 			return
 		}
