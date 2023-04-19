@@ -29,8 +29,7 @@ func TestMetrics_CountHash(t *testing.T) {
 	var counterValue int64 = 123456789
 	counterHash, err := sign.Hash(fmt.Sprintf("%s:counter:%d", counterName, counterValue), key)
 	require.NoError(t, err)
-	fmt.Println(counterHash)
-
+	t.Log(counterHash)
 	tests := []struct {
 		name     string
 		m        metrics.Metrics

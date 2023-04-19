@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/NevostruevK/metric/internal/storage"
-	"github.com/NevostruevK/metric/internal/util/logger"
 	"github.com/NevostruevK/metric/internal/util/metrics"
 )
 
@@ -19,7 +18,7 @@ func GetMetricJSONHandler(s storage.Repository, hashKey string) http.HandlerFunc
 		sM, code, err := getMetricFromRequest(r, "", 1)
 		if err != nil {
 			msg := fmt.Sprintf(" ERROR : GetMetricJSONHandler:getMetricFromRequest returned the error : %v", err)
-			logger.Server.Println(msg)
+			Logger.Println(msg)
 			http.Error(w, msg, code)
 			return
 		}
@@ -27,7 +26,7 @@ func GetMetricJSONHandler(s storage.Repository, hashKey string) http.HandlerFunc
 		rt, err := s.GetMetric(context.Background(), m.MType, m.ID)
 		if err != nil {
 			msg := fmt.Sprintf(" ERROR : GetMetricJSONHandler:GetMetric returned the error : %v", err)
-			logger.Server.Println(msg)
+			Logger.Println(msg)
 			http.Error(w, msg, http.StatusNotFound)
 			return
 		}
@@ -36,10 +35,22 @@ func GetMetricJSONHandler(s storage.Repository, hashKey string) http.HandlerFunc
 
 		if code, err = sendResponse(w, []metrics.Metrics{m}, false, hashKey); err != nil {
 			msg := fmt.Sprintf(" ERROR : GetMetricJSONHandler:sendResponse returned the error : %v", err)
-			logger.Server.Println(msg)
+			Logger.Println(msg)
 			http.Error(w, msg, code)
 		}
 	}
+}
+
+func prepareMetricsForStorage(sM []metrics.Metrics) ([]metrics.Metrics, error) {
+	st := storage.NewMemStorage(false, false, "")
+	if err := st.AddGroupOfMetrics(context.Background(), sM); err != nil {
+		return nil, err
+	}
+	pM, err := st.GetAllMetrics(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	return pM, nil
 }
 
 func AddBatchMetricJSONHandler(s storage.Repository, hashKey string, cap int) http.HandlerFunc {
@@ -48,21 +59,29 @@ func AddBatchMetricJSONHandler(s storage.Repository, hashKey string, cap int) ht
 		sM, code, err := getMetricFromRequest(r, hashKey, cap)
 		if err != nil {
 			msg := fmt.Sprintf(" ERROR : AddBatchMetricJSONHandler:getMetricFromRequest returned the error : %v", err)
-			logger.Server.Println(msg)
+			Logger.Println(msg)
 			http.Error(w, msg, code)
+			return
+		}
+
+		sM, err = prepareMetricsForStorage(sM)
+		if err != nil {
+			msg := fmt.Sprintf(" ERROR : AddBatchMetricJSONHandler:prepareMetricsForStorage returned the error : %v", err)
+			Logger.Println(msg)
+			http.Error(w, msg, http.StatusInternalServerError)
 			return
 		}
 
 		if err := s.AddGroupOfMetrics(context.Background(), sM); err != nil {
 			msg := fmt.Sprintf(" ERROR : AddBatchMetricJSONHandler:AddGroupOfMetrics returned the error : %v", err)
-			logger.Server.Println(msg)
+			Logger.Println(msg)
 			http.Error(w, msg, http.StatusInternalServerError)
 			return
 		}
 
 		if code, err = sendResponse(w, sM, true, hashKey); err != nil {
 			msg := fmt.Sprintf(" ERROR : AddBatchMetricJSONHandler:sendResponse returned the error : %v", err)
-			logger.Server.Println(msg)
+			Logger.Println(msg)
 			http.Error(w, msg, code)
 		}
 	}
@@ -73,19 +92,19 @@ func AddMetricJSONHandler(s storage.Repository, hashKey string) http.HandlerFunc
 		sM, code, err := getMetricFromRequest(r, hashKey, 1)
 		if err != nil {
 			msg := fmt.Sprintf(" ERROR : AddMetricJSONHandler:getMetricFromRequest returned the error : %v", err)
-			logger.Server.Println(msg)
+			Logger.Println(msg)
 			http.Error(w, msg, code)
 			return
 		}
 		if err := s.AddMetric(context.Background(), &sM[0]); err != nil {
 			msg := fmt.Sprintf(" ERROR : AddMetricJSONHandler:AddMetric returned the error : %v", err)
-			logger.Server.Println(msg)
+			Logger.Println(msg)
 			http.Error(w, msg, http.StatusInternalServerError)
 			return
 		}
 		if code, err = sendResponse(w, sM, false, hashKey); err != nil {
 			msg := fmt.Sprintf(" ERROR : AddMetricJSONHandler:sendResponse returned the error : %v", err)
-			logger.Server.Println(msg)
+			Logger.Println(msg)
 			http.Error(w, msg, code)
 		}
 	}

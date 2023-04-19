@@ -8,7 +8,6 @@ import (
 )
 
 var logWriter = os.Stdout
-var Server = &log.Logger{}
 
 func LogCommands(cmd *commands.Commands, isServer bool, err error) {
 
@@ -33,9 +32,4 @@ func LogCommands(cmd *commands.Commands, isServer bool, err error) {
 
 func NewLogger(name string, flags int) *log.Logger {
 	return log.New(logWriter, name, flags)
-}
-
-func NewServer(name string, flags int) *log.Logger {
-	Server = log.New(logWriter, name, flags)
-	return Server
 }

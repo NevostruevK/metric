@@ -24,6 +24,7 @@ type Repository interface {
 	GetMetric(ctx context.Context, reqType, name string) (RepositoryData, error)
 	GetAllMetrics(context.Context) ([]metrics.Metrics, error)
 	AddGroupOfMetrics(ctx context.Context, sM []metrics.Metrics) error
+	Ping() error
 }
 
 type MemStorage struct {
@@ -82,10 +83,14 @@ func (s *MemStorage) Close() error {
 	return s.saver.Close()
 }
 
+func (s *MemStorage) Ping() error {
+	return fmt.Errorf("can't ping memory storage")
+}
+
 func (s *MemStorage) AddGroupOfMetrics(ctx context.Context, sM []metrics.Metrics) error {
-	for _, m := range sM {
-		if err := s.AddMetric(ctx, &m); err != nil {
-			return err
+	for i, m := range sM {
+		if err := s.AddMetric(ctx, &sM[i]); err != nil {
+			return fmt.Errorf("can't AddMetric %s", m)
 		}
 	}
 	return nil

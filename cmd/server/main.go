@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -29,10 +29,12 @@ func main() {
 	storeInterval := time.NewTicker(cmd.StoreInterval)
 	st := &storage.MemStorage{}
 
+	s := &http.Server{}
+
 	lgr.Println(`Init database`)
 	db, err := db.NewDB(context.Background(), cmd.DataBaseDSN)
 	if err != nil || cmd.DataBaseDSN == "" {
-		fmt.Println("Can't compleate DB connection: ", err)
+		lgr.Println("Can't compleate DB connection: ", err)
 		if err != nil {
 			lgr.Printf("ERROR : NewDB returned the error %v\n", err)
 		}
@@ -49,8 +51,7 @@ func main() {
 				lgr.Printf("ERROR : st.Close returned the error %v\n", err)
 			}
 		}()
-		lgr.Println("Start server")
-		go server.Start(st, db, cmd.Address, cmd.Key)
+		s = server.NewServer(st, cmd.Address, cmd.Key)
 	} else {
 		defer func() {
 			if err = db.ShowMetrics(context.Background()); err != nil {
@@ -61,9 +62,12 @@ func main() {
 			}
 		}()
 		storeInterval.Stop()
-		lgr.Println("Start server")
-		go server.Start(db, db, cmd.Address, cmd.Key)
+		s = server.NewServer(db, cmd.Address, cmd.Key)
 	}
+	lgr.Printf("Start server %v", s)
+	//	go s.Start()
+	go lgr.Fatal(s.ListenAndServe())
+
 	for {
 		select {
 		case <-storeInterval.C:
@@ -75,6 +79,9 @@ func main() {
 		case <-gracefulShutdown:
 			lgr.Println("Server Get Signal!")
 			storeInterval.Stop()
+			if err = s.Shutdown(context.Background()); err != nil {
+				lgr.Printf("ERROR : Server Shutdown error %v", err)
+			}
 			return
 		}
 	}

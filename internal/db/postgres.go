@@ -16,6 +16,8 @@ import (
 
 const errDuplicateID = `pq: duplicate key value violates unique constraint "metrics_id_key"`
 
+const extraSizeIfNewMetricsWereJustSaved = 10
+
 type metricSQL struct {
 	id    string
 	mtype string
@@ -56,40 +58,17 @@ func NewDB(ctx context.Context, connStr string) (*DB, error) {
 }
 
 func (db *DB) ShowMetrics(ctx context.Context) error {
-	l := logger.NewLogger("", 0)
+
 	db.logger.Println("Show metrics")
-	rows, err := db.db.QueryContext(ctx, "SELECT * FROM metrics")
+	sM, err := db.GetAllMetrics(ctx)
 	if err != nil {
 		db.logger.Println(err)
 		return err
 	}
-	defer rows.Close()
-	mSQL := metricSQL{}
-	for rows.Next() {
-		newDelta := sql.NullInt64{}
-		newValue := sql.NullFloat64{}
-		err = rows.Scan(&mSQL.id, &mSQL.mtype, &newDelta, &newValue)
-		if err != nil {
-			db.logger.Println(err)
-			continue
-		}
-		m := metrics.Metrics{ID: mSQL.id, MType: mSQL.mtype}
-		if mSQL.mtype == metrics.Gauge {
-			if newValue.Valid {
-				m.Value = &newValue.Float64
-				l.Println(m)
-			}
-			continue
-		}
-		if mSQL.mtype == metrics.Counter {
-			if newDelta.Valid {
-				m.Delta = &newDelta.Int64
-				l.Println(m)
-			}
-			continue
-		}
+	for _, m := range sM {
+		db.logger.Println(m)
 	}
-	return rows.Err()
+	return nil
 }
 
 func (db *DB) GetAllMetrics(ctx context.Context) ([]metrics.Metrics, error) {
@@ -99,7 +78,7 @@ func (db *DB) GetAllMetrics(ctx context.Context) ([]metrics.Metrics, error) {
 		db.logger.Println(err)
 		return nil, err
 	}
-	sM := make([]metrics.Metrics, 0, size+10)
+	sM := make([]metrics.Metrics, 0, size+extraSizeIfNewMetricsWereJustSaved)
 	rows, err := db.db.QueryContext(ctx, "SELECT * FROM metrics")
 	if err != nil {
 		db.logger.Println(err)
@@ -116,22 +95,24 @@ func (db *DB) GetAllMetrics(ctx context.Context) ([]metrics.Metrics, error) {
 			continue
 		}
 		m := metrics.Metrics{ID: mSQL.id, MType: mSQL.mtype}
-		if mSQL.mtype == metrics.Gauge {
-			if newValue.Valid {
-				m.Value = &newValue.Float64
-				sM = append(sM, m)
+		switch mSQL.mtype {
+		case metrics.Gauge:
+			if !newValue.Valid {
+				db.logger.Printf("ERROR : invalid gauge metric %s\n", mSQL.id)
+				continue
 			}
-			db.logger.Printf("ERROR : invalid gauge metric %s\n", mSQL.id)
+			m.Value = &newValue.Float64
+		case metrics.Counter:
+			if !newDelta.Valid {
+				db.logger.Printf("ERROR : invalid counter metric %s\n", mSQL.id)
+				continue
+			}
+			m.Delta = &newDelta.Int64
+		default:
+			db.logger.Printf("ERROR : invalid type of metric %s\n", mSQL.mtype)
 			continue
 		}
-		if mSQL.mtype == metrics.Counter {
-			if newDelta.Valid {
-				m.Delta = &newDelta.Int64
-				sM = append(sM, m)
-			}
-			db.logger.Printf("ERROR : invalid counter metric %s\n", mSQL.id)
-			continue
-		}
+		sM = append(sM, m)
 	}
 	return sM, rows.Err()
 }
@@ -151,27 +132,59 @@ func (db *DB) AddGroupOfMetrics(ctx context.Context, sM []metrics.Metrics) error
 	}()
 
 	for _, m := range sM {
-		err := db.AddMetric(ctx, &m)
-		if err != nil {
-			db.logger.Printf("ERROR : AddGroupOfMetrics:AddMetric : %v\n", err)
-			return err
+		switch m.Type() {
+		case metrics.Gauge:
+			_, err := tx.ExecContext(ctx, insertGaugeSQL, m.Name(), m.GaugeValue())
+			if err != nil {
+				if !strings.Contains(err.Error(), errDuplicateID) {
+					db.logger.Printf("ERROR : Inserted %s %v\n", m, err)
+					return err
+				}
+				_, err = tx.ExecContext(ctx, updateGaugeSQL, m.Name(), m.GaugeValue())
+				if err != nil {
+					db.logger.Printf("ERROR : Updated %s %v\n", m, err)
+					return err
+				}
+				db.logger.Printf("Updated %s \n", m)
+				continue
+			}
+		case metrics.Counter:
+			_, err := tx.ExecContext(ctx, insertCounterSQL, m.Name(), m.CounterValue())
+			if err != nil {
+				if !strings.Contains(err.Error(), errDuplicateID) {
+					db.logger.Printf("ERROR : Inserted %s %v\n", m, err)
+					return err
+				}
+				mSQL := metricSQL{}
+				if err = tx.QueryRowContext(ctx, getCounterMetricSQL, m.Name()).Scan(&mSQL.mtype, &mSQL.delta); err != nil {
+					db.logger.Printf("ERROR : getCounterMetricSQL %s %v\n", m, err)
+					return err
+				}
+				if mSQL.mtype == metrics.Counter && mSQL.delta.Valid {
+					if err = m.AddCounterValue(mSQL.delta.Int64); err != nil {
+						db.logger.Printf("ERROR : AddCounterValue %s %v\n", m, err)
+						return err
+					}
+				}
+				_, err = tx.ExecContext(ctx, updateCounterSQL, m.Name(), m.CounterValue())
+				if err != nil {
+					db.logger.Printf("ERROR : Updated %s %v\n", m, err)
+					return err
+				}
+				db.logger.Printf("Updated %s \n", m)
+				continue
+			}
+		default:
+			msg := fmt.Sprintf("ERROR : AddGroupOfMetrics is not implemented for type %s\n", m.Type())
+			db.logger.Println(msg)
+			return fmt.Errorf(msg)
 		}
+		db.logger.Printf("Inserted %s", m)
 	}
 	return tx.Commit()
 }
 
 func (db *DB) AddMetric(ctx context.Context, rt storage.RepositoryData) error {
-	tx, err := db.db.BeginTx(ctx, &sql.TxOptions{})
-	if err != nil {
-		db.logger.Println(err)
-		return err
-	}
-	defer func() {
-		err := tx.Rollback()
-		if !errors.Is(err, sql.ErrTxDone) {
-			db.logger.Println(err)
-		}
-	}()
 
 	switch rt.Type() {
 	case metrics.Gauge:
@@ -187,7 +200,7 @@ func (db *DB) AddMetric(ctx context.Context, rt storage.RepositoryData) error {
 				return err
 			}
 			db.logger.Printf("Updated %s \n", rt)
-			return tx.Commit()
+			return nil
 		}
 	case metrics.Counter:
 		_, err := db.db.ExecContext(ctx, insertCounterSQL, rt.Name(), rt.CounterValue())
@@ -213,7 +226,7 @@ func (db *DB) AddMetric(ctx context.Context, rt storage.RepositoryData) error {
 				return err
 			}
 			db.logger.Printf("Updated %s \n", rt)
-			return tx.Commit()
+			return nil
 		}
 	default:
 		msg := fmt.Sprintf("ERROR : AddMetric is not implemented for type %s\n", rt.Type())
@@ -221,7 +234,7 @@ func (db *DB) AddMetric(ctx context.Context, rt storage.RepositoryData) error {
 		return fmt.Errorf(msg)
 	}
 	db.logger.Printf("Inserted %s \n", rt)
-	return tx.Commit()
+	return nil
 }
 
 func (db *DB) GetMetric(ctx context.Context, reqType, name string) (storage.RepositoryData, error) {
