@@ -6,9 +6,14 @@ import (
 	"regexp"
 	"runtime"
 	"time"
+
+	"github.com/shirou/gopsutil/v3/mem"
 )
 
-const MetricsCount = 29
+const (
+	MetricsCount      = 29
+	ExtraMetricsCount = 3
+)
 
 type gauge float64
 type counter int64
@@ -41,6 +46,21 @@ var getRequestCount int64 = 0
 func getRandomFloat64() float64 {
 	rand.Seed(time.Now().UnixNano())
 	return rand.Float64()
+}
+
+
+func GetAdvanced() ([]MetricCreater, error){
+	
+	v, err := mem.VirtualMemory()
+	if err != nil{
+		return nil, err
+	}
+	m := &Metrics{}
+	sM := make([]MetricCreater, 0, ExtraMetricsCount)
+	sM = append(sM, m.NewGaugeMetric("TotalMemory", float64(v.Total)))
+	sM = append(sM, m.NewGaugeMetric("FreeMemory", float64(v.Free)))
+	sM = append(sM, m.NewGaugeMetric("CPUutilization1", v.UsedPercent))
+	return sM, nil
 }
 
 func Get(cr MetricCreater) []MetricCreater {

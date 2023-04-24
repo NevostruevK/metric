@@ -1,11 +1,11 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/NevostruevK/metric/internal/client"
 	"github.com/NevostruevK/metric/internal/util/commands"
@@ -14,6 +14,8 @@ import (
 )
 
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+
 	gracefulShutdown := make(chan os.Signal, 1)
 	signal.Notify(gracefulShutdown, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
@@ -23,6 +25,18 @@ func main() {
 	cmd, err := commands.GetAgentCommands()
 	logger.LogCommands(cmd, false, err)
 
+	ch := make(chan []metrics.MetricCreater)
+
+	go client.CollectMetrics(ctx, cmd.PollInterval, ch)
+	go client.AgentSendMetrics(ctx, cmd, ch)
+	
+	select {
+	case <-gracefulShutdown:
+		lgr.Println("Get Agent Signal!")
+		cancel()
+	case <-ctx.Done():
+	}
+	/*
 	a := client.NewAgent(cmd.Address, cmd.Key)
 	pollTicker := time.NewTicker(cmd.PollInterval)
 	reportTicker := time.NewTicker(cmd.ReportInterval)
@@ -52,4 +66,5 @@ func main() {
 			return
 		}
 	}
+	*/
 }

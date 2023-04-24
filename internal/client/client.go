@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,7 +10,9 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
+	"github.com/NevostruevK/metric/internal/util/commands"
 	"github.com/NevostruevK/metric/internal/util/fgzip"
 	"github.com/NevostruevK/metric/internal/util/logger"
 	"github.com/NevostruevK/metric/internal/util/metrics"
@@ -46,6 +49,58 @@ func SendMetrics(a *Agent, sM []metrics.MetricCreater) int {
 		}
 	}
 	return len(sM)
+}
+
+func AgentSendMetrics(ctx context.Context, cmd *commands.Commands, ch chan []metrics.MetricCreater){
+	lgr := logger.NewLogger("agent : ", log.LstdFlags|log.Lshortfile)
+	
+	reportTicker := time.NewTicker(cmd.ReportInterval)
+	defer reportTicker.Stop()
+	a := NewAgent(cmd.Address, cmd.Key)
+	
+	var sM []metrics.MetricCreater
+	
+	for {
+		select {
+		case newM := <-ch:
+			sM = append(sM, newM...)
+			lgr.Printf("Recieve: %d metrics", len(sM))	
+		case <-reportTicker.C:
+			lgr.Println("Send Metric: ", len(sM))
+			sendCount := SendMetrics(a, sM)			
+			if sendCount == len(sM) {
+				metrics.ResetCounter()
+				sM = nil
+				break
+			}
+			lgr.Println("Sent ", sendCount, "metrics from ", len(sM))
+			sM = sM[sendCount:]			
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+
+func CollectMetrics(ctx context.Context, pollInterval time.Duration, ch chan []metrics.MetricCreater){
+	lgr := logger.NewLogger("collect : ", log.LstdFlags|log.Lshortfile)
+
+	pollTicker := time.NewTicker(pollInterval)
+	defer pollTicker.Stop()
+
+	for {
+		select {
+		case <-pollTicker.C:
+//			sM := metrics.Get(&metrics.Metrics{})
+			
+			sM, _ := metrics.GetAdvanced()
+			sM = append(sM, metrics.Get(&metrics.Metrics{})...)
+			lgr.Printf("Send: %d metrics", len(sM))	
+			ch <- sM
+		case <-ctx.Done():
+			return
+		}
+	}
 }
 
 type Sender interface {
