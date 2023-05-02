@@ -13,15 +13,6 @@ type Metrics struct {
 	Hash  string   `json:"hash,omitempty"`  // значение хеш-функции
 }
 
-/*
-	func (m *Metrics) NewGaugeMetric(id string, f float64) MetricCreater {
-		return &Metrics{ID: id, MType: Gauge, Value: &f}
-	}
-
-	func (m *Metrics) NewCounterMetric(id string, i int64) MetricCreater {
-		return &Metrics{ID: id, MType: Counter, Delta: &i}
-	}
-*/
 func NewJSONGaugeMetric(id string, f float64) Metrics {
 	return Metrics{ID: id, MType: Gauge, Value: &f}
 }

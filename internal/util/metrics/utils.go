@@ -48,7 +48,6 @@ func getRandomFloat64() float64 {
 	return rand.Float64()
 }
 
-// func GetAdvanced() ([]MetricCreater, error){
 func GetAdvanced() ([]Metrics, error) {
 
 	v, err := mem.VirtualMemory()
@@ -62,7 +61,6 @@ func GetAdvanced() ([]Metrics, error) {
 	return sM, nil
 }
 
-// func Get(cr MetricCreater) []MetricCreater {
 func Get() []Metrics {
 	sM := make([]Metrics, 0, MetricsCount)
 	var mem runtime.MemStats
