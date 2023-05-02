@@ -22,6 +22,7 @@ func LogCommands(cmd *commands.Commands, isServer bool, err error) {
 		logger = log.New(logWriter, `agent's flag : `, 0)
 		logger.Printf("REPORT_INTERVAL = %v\n", cmd.ReportInterval)
 		logger.Printf("POLL_INTERVAL = %v\n", cmd.PollInterval)
+		logger.Printf("RATE_LIMIT = %v\n", cmd.RateLimit)
 	}
 	logger.Printf("ADDRESS = %s\n", cmd.Address)
 	logger.Printf("KEY = %s\n", cmd.Key)

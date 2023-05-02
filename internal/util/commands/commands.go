@@ -8,6 +8,8 @@ import (
 	"github.com/caarlos0/env/v7"
 )
 
+const maxRateLimit = 256
+
 const (
 	defAddress        = "127.0.0.1:8080"
 	defStoreFile      = "/tmp/devops-metrics-db.json"
@@ -17,6 +19,7 @@ const (
 	defRestore        = true
 	defKey            = ""
 	defDataBaseDSN    = ""
+	defRateLimit      = 1
 )
 
 type Commands struct {
@@ -28,6 +31,7 @@ type Commands struct {
 	Restore        bool          `env:"RESTORE" envDefault:"true"`
 	Key            string        `env:"KEY" envDefault:""`
 	DataBaseDSN    string        `env:"DATABASE_DSN" envDefault:""`
+	RateLimit      int           `env:"RATE_LIMIT" envDefault:"1"`
 }
 
 func GetAgentCommands() (*Commands, error) {
@@ -35,6 +39,7 @@ func GetAgentCommands() (*Commands, error) {
 	reportIntervalPtr := flag.Duration("r", defReportInterval, "report interval type : time.duration")
 	pollIntervalPtr := flag.Duration("p", defPollInterval, "report interval type : time.duration")
 	keyPtr := flag.String("k", defKey, "key for signing metrics")
+	rateLimitPtr := flag.Int("l", defRateLimit, "requests count")
 	flag.Parse()
 
 	cmd := Commands{}
@@ -50,6 +55,15 @@ func GetAgentCommands() (*Commands, error) {
 	}
 	if _, ok := os.LookupEnv("KEY"); !ok || err != nil {
 		cmd.Key = *keyPtr
+	}
+	if _, ok := os.LookupEnv("RATE_LIMIT"); !ok || err != nil {
+		cmd.RateLimit = *rateLimitPtr
+	}
+	if cmd.RateLimit == 0 {
+		cmd.RateLimit = 1
+	}
+	if cmd.RateLimit > maxRateLimit {
+		cmd.RateLimit = maxRateLimit
 	}
 	return &cmd, err
 }

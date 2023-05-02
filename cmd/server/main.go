@@ -82,7 +82,7 @@ func main() {
 			storeInterval.Stop()
 			if err = s.Shutdown(context.Background()); err != nil {
 				lgr.Printf("ERROR : Server Shutdown error %v", err)
-			}else{
+			} else {
 				lgr.Printf("Server Shutdown ")
 			}
 			return

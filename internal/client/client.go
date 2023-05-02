@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/NevostruevK/metric/internal/util/commands"
@@ -18,71 +19,145 @@ import (
 	"github.com/NevostruevK/metric/internal/util/metrics"
 )
 
-type Agent struct {
+const metricsLimit = 1024
+
+type worker struct {
 	client  *http.Client
 	address string
 	hashKey string
 	logger  *log.Logger
 }
 
-func NewAgent(address, hashKey string) *Agent {
-	return &Agent{client: &http.Client{}, address: address, hashKey: hashKey, logger: logger.NewLogger("agent : ", log.LstdFlags|log.Lshortfile)}
+type workers struct {
+	free    int32
+	workers []worker
 }
 
-func SendMetrics(a *Agent, sM []metrics.MetricCreater) int {
-	for i, m := range sM {
-		switch obj := m.(type) {
-		case *metrics.BasicMetric:
-			c := clientText{Agent: a, obj: *obj}
-			if err := c.SendMetric(); err != nil {
-				a.logger.Printf("ERROR : SendMetric returned the error %v\n", err)
-				return i
-			}
-		case *metrics.Metrics:
-			c := clientJSON{Agent: a, obj: *obj}
-			if err := c.SendMetric(); err != nil {
-				a.logger.Printf("ERROR : SendMetric returned the error %v\n", err)
-				return i
-			}
-		default:
-			a.logger.Printf("Type %T not implemented\n", obj)
-		}
-	}
-	return len(sM)
+func NewWorker(address, hashKey string, id int) *worker {
+	name := fmt.Sprintf("worker %d ", id)
+	return &worker{client: &http.Client{}, address: address, hashKey: hashKey, logger: logger.NewLogger(name, log.LstdFlags|log.Lshortfile)}
 }
 
-func AgentSendMetrics(ctx context.Context, cmd *commands.Commands, ch chan []metrics.MetricCreater){
-	lgr := logger.NewLogger("agent : ", log.LstdFlags|log.Lshortfile)
-	
-	reportTicker := time.NewTicker(cmd.ReportInterval)
-	defer reportTicker.Stop()
-	a := NewAgent(cmd.Address, cmd.Key)
-	
-	var sM []metrics.MetricCreater
-	
+func (w *worker) start(ctx context.Context, inCh, reuseCh chan []metrics.Metrics, free *int32) {
+	w.logger.Println("Start")
+	atomic.AddInt32(free, 1)
 	for {
 		select {
-		case newM := <-ch:
-			sM = append(sM, newM...)
-			lgr.Printf("Recieve: %d metrics", len(sM))	
-		case <-reportTicker.C:
-			lgr.Println("Send Metric: ", len(sM))
-			sendCount := SendMetrics(a, sM)			
-			if sendCount == len(sM) {
-				metrics.ResetCounter()
-				sM = nil
-				break
+		case newM := <-inCh:
+			w.logger.Printf("Get %d metrics", len(newM))
+			atomic.AddInt32(free, -1)
+			send, err := w.Send(ctx, newM)
+			if err != nil {
+				w.logger.Printf("Error : %v", err)
 			}
-			lgr.Println("Sent ", sendCount, "metrics from ", len(sM))
-			sM = sM[sendCount:]			
+			w.logger.Printf("Sended %d from %d metrics", send, len(newM))
+			if send < len(newM) {
+				newM = newM[send:]
+				reuseCh <- newM
+			}
+			atomic.AddInt32(free, 1)
+			w.logger.Println("Work compleate")
 		case <-ctx.Done():
+			w.logger.Println("Finished")
+			atomic.AddInt32(free, 1)
 			return
 		}
 	}
 }
 
+func (w *worker) Send(ctx context.Context, sM []metrics.Metrics) (int, error) {
+	endpoint := url.URL{
+		Scheme: "http",
+		Host:   w.address,
+		Path:   "/update/",
+	}
+	for i, m := range sM {
+		if w.hashKey != "" {
+			if err := m.SetHash(w.hashKey); err != nil {
+				msg := fmt.Sprintf("ERROR : SendMetric(JSON): can't set hash for metric %v , error %v\n", m, err)
+				w.logger.Println(msg)
+				return i, fmt.Errorf(msg)
+			}
+		}
+		data, err := json.Marshal(m)
+		if err != nil {
+			w.logger.Printf("ERROR : SendMetric(JSON):json.Marshal error %v\n", err)
+			return i, err
+		}
+		request, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint.String(), bytes.NewBuffer(data))
+		if err != nil {
+			w.logger.Printf("ERROR : SendMetric(JSON):http.NewRequest error %v\n", err)
+			return i, err
+		}
+		request.Header.Set("Content-Type", "application/json")
+		response, err := w.client.Do(request)
+		if err != nil {
+			w.logger.Printf("ERROR : SendMetric(JSON):c.client.Do(request) error %v\n", err)
+			return i, err
+		}
+		defer response.Body.Close()
+		body, err := io.ReadAll(response.Body)
+		if err != nil {
+			w.logger.Printf("ERROR : SendMetric(JSON):io.ReadAll error %v\n", err)
+			return i, err
+		}
+		if response.StatusCode != http.StatusOK {
+			if strings.Contains(response.Header.Get("Content-Encoding"), "gzip") {
+				body, err = fgzip.Decompress(body)
+				if err != nil {
+					w.logger.Printf("ERROR : SendMetric(JSON):fgzip.Decompress error %v\n", err)
+					return i, err
+				}
+			}
+			w.logger.Printf("ERROR : SendMetric(JSON): read wrong response Status code: %d body %s\n", response.StatusCode, body)
+		}
+	}
+	return len(sM), nil
+}
 
-func CollectMetrics(ctx context.Context, pollInterval time.Duration, ch chan []metrics.MetricCreater){
+func StartAgent(ctx context.Context, cmd *commands.Commands) {
+	lgr := logger.NewLogger("agent : ", log.LstdFlags|log.Lshortfile)
+	lgr.Println("Start")
+	chIn := make(chan []metrics.Metrics)
+	chOut := make(chan []metrics.Metrics)
+	w := &workers{free: 0, workers: make([]worker, 0, cmd.RateLimit)}
+	for i := 0; i < cmd.RateLimit; i++ {
+		w.workers = append(w.workers, *NewWorker(cmd.Address, cmd.Key, i))
+		go w.workers[i].start(ctx, chOut, chIn, &w.free)
+	}
+	go CollectMetrics(ctx, cmd.PollInterval, chIn)
+	reportTicker := time.NewTicker(cmd.ReportInterval)
+	defer reportTicker.Stop()
+	sM := make([]metrics.Metrics, 0, metricsLimit)
+
+	for {
+		select {
+		case newM := <-chIn:
+			sM = append(sM, newM...)
+			lgr.Printf("Recieve: %d metrics", len(sM))
+		case <-reportTicker.C:
+			free := int(atomic.LoadInt32(&w.free))
+			lgr.Printf("I have %d workers for %d metrics", free, len(sM))
+			for i := free; i > 0; i-- {
+				size := len(sM) / i
+				if size == 0 {
+					continue
+				}
+				chOut <- sM[:size]
+				sM = sM[size:]
+			}
+			lgr.Println("Gave Job")
+			sM = nil
+		case <-ctx.Done():
+			lgr.Println("Finished")
+			return
+		}
+	}
+
+}
+
+
+func CollectMetrics(ctx context.Context, pollInterval time.Duration, ch chan []metrics.Metrics) {
 	lgr := logger.NewLogger("collect : ", log.LstdFlags|log.Lshortfile)
 
 	pollTicker := time.NewTicker(pollInterval)
@@ -91,106 +166,12 @@ func CollectMetrics(ctx context.Context, pollInterval time.Duration, ch chan []m
 	for {
 		select {
 		case <-pollTicker.C:
-//			sM := metrics.Get(&metrics.Metrics{})
-			
 			sM, _ := metrics.GetAdvanced()
-			sM = append(sM, metrics.Get(&metrics.Metrics{})...)
-			lgr.Printf("Send: %d metrics", len(sM))	
+			sM = append(sM, metrics.Get()...)
+			lgr.Printf("Send: %d metrics", len(sM))
 			ch <- sM
 		case <-ctx.Done():
 			return
 		}
 	}
-}
-
-type Sender interface {
-	SendMetric() error
-}
-
-type clientText struct {
-	*Agent
-	obj metrics.BasicMetric
-}
-
-type clientJSON struct {
-	*Agent
-	obj metrics.Metrics
-}
-
-func (c *clientText) SendMetric() (err error) {
-	endpoint := url.URL{
-		Scheme: "http",
-		Host:   c.address,
-		Path:   "/update/" + c.obj.Type() + "/" + c.obj.Name() + "/" + c.obj.StringValue(),
-	}
-	request, err := http.NewRequest(http.MethodPost, endpoint.String(), nil)
-	if err != nil {
-		c.logger.Printf("ERROR : SendMetric(Text): create request error: %v\n", err)
-		return
-	}
-	request.Header.Set("Content-Type", "text/plain")
-	response, err := c.client.Do(request)
-	if err != nil {
-		c.logger.Printf("ERROR : SendMetric(Text): send request error: %v\n", err)
-		return
-	}
-	defer response.Body.Close()
-	body, err := io.ReadAll(response.Body)
-	if err != nil {
-		c.logger.Printf("ERROR : SendMetric(Text): read body error: %v\n", err)
-		return
-	}
-	if response.StatusCode != http.StatusOK {
-		c.logger.Printf("ERROR : SendMetric(Text): read wrong response Status code: %d body %s\n", response.StatusCode, body)
-	}
-	return nil
-}
-
-func (c *clientJSON) SendMetric() (err error) {
-	endpoint := url.URL{
-		Scheme: "http",
-		Host:   c.address,
-		Path:   "/update/",
-	}
-
-	if c.hashKey != "" {
-		if err = c.obj.SetHash(c.hashKey); err != nil {
-			msg := fmt.Sprintf("ERROR : SendMetric(JSON): can't set hash for metric %v , error %v\n", c.obj, err)
-			c.logger.Println(msg)
-			return fmt.Errorf(msg)
-		}
-	}
-	data, err := json.Marshal(c.obj)
-	if err != nil {
-		c.logger.Printf("ERROR : SendMetric(JSON):json.Marshal error %v\n", err)
-		return
-	}
-	request, err := http.NewRequest(http.MethodPost, endpoint.String(), bytes.NewBuffer(data))
-	if err != nil {
-		c.logger.Printf("ERROR : SendMetric(JSON):http.NewRequest error %v\n", err)
-		return
-	}
-	request.Header.Set("Content-Type", "application/json")
-	response, err := c.client.Do(request)
-	if err != nil {
-		c.logger.Printf("ERROR : SendMetric(JSON):c.client.Do(request) error %v\n", err)
-		return
-	}
-	defer response.Body.Close()
-	body, err := io.ReadAll(response.Body)
-	if err != nil {
-		c.logger.Printf("ERROR : SendMetric(JSON):io.ReadAll error %v\n", err)
-		return
-	}
-	if response.StatusCode != http.StatusOK {
-		if strings.Contains(response.Header.Get("Content-Encoding"), "gzip") {
-			body, err = fgzip.Decompress(body)
-			if err != nil {
-				c.logger.Printf("ERROR : SendMetric(JSON):fgzip.Decompress error %v\n", err)
-				return
-			}
-		}
-		c.logger.Printf("ERROR : SendMetric(JSON): read wrong response Status code: %d body %s\n", response.StatusCode, body)
-	}
-	return nil
 }

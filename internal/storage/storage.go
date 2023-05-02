@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 
 	"github.com/NevostruevK/metric/internal/util/logger"
 	"github.com/NevostruevK/metric/internal/util/metrics"
@@ -32,6 +33,7 @@ type MemStorage struct {
 	saver           *saver
 	logger          *log.Logger
 	needToSyncWrite bool
+	mu              sync.RWMutex
 }
 
 func NewMemStorage(restore, needToSyncWrite bool, filename string) *MemStorage {
@@ -97,6 +99,8 @@ func (s *MemStorage) AddGroupOfMetrics(ctx context.Context, sM []metrics.Metrics
 }
 
 func (s *MemStorage) AddMetric(ctx context.Context, rt RepositoryData) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if rt.Type() == metrics.Counter && s.data[rt.Name()] != nil {
 		rt.AddCounterValue(s.data[rt.Name()].CounterValue())
 	}
@@ -108,6 +112,8 @@ func (s *MemStorage) AddMetric(ctx context.Context, rt RepositoryData) error {
 }
 
 func (s *MemStorage) GetMetric(ctx context.Context, reqType, name string) (RepositoryData, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	if validType := metrics.IsMetricType(reqType); !validType {
 		return nil, fmt.Errorf("type %s is not valid metric type", reqType)
 	}
@@ -121,6 +127,8 @@ func (s *MemStorage) GetMetric(ctx context.Context, reqType, name string) (Repos
 }
 
 func (s *MemStorage) GetAllMetrics(context.Context) ([]metrics.Metrics, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	sM := make([]metrics.Metrics, 0, len(s.data))
 	for _, m := range s.data {
 		sM = append(sM, m.ConvertToMetrics())
@@ -129,6 +137,8 @@ func (s *MemStorage) GetAllMetrics(context.Context) ([]metrics.Metrics, error) {
 }
 
 func (s *MemStorage) ShowMetrics(context.Context) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	s.logger.Println("Show metrics")
 	lgr := logger.NewLogger("", 0)
 	for _, m := range s.data {
