@@ -68,7 +68,6 @@ func main() {
 	go func() {
 		go lgr.Println(s.ListenAndServe())
 	}()
-
 	for {
 		select {
 		case <-storeInterval.C:

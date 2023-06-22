@@ -156,7 +156,6 @@ func StartAgent(ctx context.Context, cmd *commands.Commands) {
 
 }
 
-
 func CollectMetrics(ctx context.Context, pollInterval time.Duration, ch chan []metrics.Metrics) {
 	lgr := logger.NewLogger("collect : ", log.LstdFlags|log.Lshortfile)
 
