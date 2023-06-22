@@ -102,7 +102,6 @@ func AddMetricHandler(s storage.Repository) http.HandlerFunc {
 			http.Error(w, msg, http.StatusBadRequest)
 			return
 		}
-
 		if isValidType := metrics.IsMetricType(typeM); !isValidType {
 			msg := fmt.Sprintf("type %s is not implemented", typeM)
 			Logger.Println(msg)

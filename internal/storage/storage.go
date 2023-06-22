@@ -124,7 +124,8 @@ func (s *MemStorage) AddMetric(ctx context.Context, rt RepositoryData) error {
 	defer s.mu.Unlock()
 	switch rt.Type() {
 	case metrics.Counter:
-		s.Int[rt.Name()] += rt.CounterValue()
+		rt.AddCounterValue(s.Int[rt.Name()])
+		s.Int[rt.Name()] = rt.CounterValue()
 	case metrics.Gauge:
 		s.Float[rt.Name()] = rt.GaugeValue()
 	default:
