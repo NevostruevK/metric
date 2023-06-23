@@ -1,3 +1,4 @@
+// Модуль server инициализирует сервер для работы с метриками.
 package server
 
 import (
@@ -12,8 +13,10 @@ import (
 
 const initialBatchMetricCapacity = 200
 
+// Server HTTP сервер для работы с метриками.
 type Server *http.Server
 
+// NewServer создание сервера на основе роутера github.com/go-chi/chi/v5.
 func NewServer(s storage.Repository, address, hashKey string) Server {
 	handlers.Logger = logger.NewLogger(`server: `, log.LstdFlags)
 	r := chi.NewRouter()

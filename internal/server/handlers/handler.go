@@ -13,6 +13,8 @@ import (
 
 var Logger = &log.Logger{}
 
+// GetPingHandler обработчик запроса /ping.
+// Проверка подключения к базе.
 func GetPingHandler(s storage.Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
@@ -27,6 +29,8 @@ func GetPingHandler(s storage.Repository) http.HandlerFunc {
 	}
 }
 
+// GetAllMetricsHandler обработчик запроса /.
+// Выдача всех метрик.
 func GetAllMetricsHandler(s storage.Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sm, err := s.GetAllMetrics(context.Background())
@@ -61,6 +65,8 @@ func GetAllMetricsHandler(s storage.Repository) http.HandlerFunc {
 	}
 }
 
+// GetMetricHandler обработчик запроса /value/{typeM}/{name}.
+// Выдача метрики name типа typeM.
 func GetMetricHandler(s storage.Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		typeM := chi.URLParam(r, "typeM")
@@ -91,6 +97,8 @@ func GetMetricHandler(s storage.Repository) http.HandlerFunc {
 	}
 }
 
+// AddMetricHandler обработчик запроса /update/{typeM}/{name}/{value}.
+// Прием метрики name типа typeM со значением value.
 func AddMetricHandler(s storage.Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		typeM := chi.URLParam(r, "typeM")

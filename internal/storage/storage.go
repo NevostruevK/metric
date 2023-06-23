@@ -14,24 +14,39 @@ import (
 const initialFloatMapSize = 32
 const initialIntMapSize = 4
 
+// RepositoryData интерфейс объектов для Storage.
 type RepositoryData interface {
+	// Name имя объекта.
 	Name() string
+	// Type тип объекта.
 	Type() string
+	// StringValue строковое представление значения объекта.
 	StringValue() string
+	// CounterValue значение объекта типа "сounter".
 	CounterValue() int64
+	// GaugeValue значение объекта типа "gauge".
 	GaugeValue() float64
+	// AddCounterValue прибавление значения к объекту типа "сounter".
 	AddCounterValue(int64) error
+	// ConvertToMetrics преобразование к типу Metrics.
 	ConvertToMetrics() metrics.Metrics
 }
 
+// Repository ннтерфейс для работы со Storage.
 type Repository interface {
+	// AddMetric добавление объекта RepositoryData.
 	AddMetric(context.Context, RepositoryData) error
+	// GetMetric чтение объекта name типа reqType.
 	GetMetric(ctx context.Context, reqType, name string) (RepositoryData, error)
+	// GetAllMetrics чтение всех объектов.
 	GetAllMetrics(context.Context) ([]metrics.Metrics, error)
+	// AddGroupOfMetrics добавление []Мetrics.
 	AddGroupOfMetrics(ctx context.Context, sM []metrics.Metrics) error
+	// Ping проверка коннекта к Storage.
 	Ping() error
 }
 
+// MemStorage структура для хранения метрик в памяти.
 type MemStorage struct {
 	Float           map[string]float64
 	Int             map[string]int64
@@ -41,6 +56,9 @@ type MemStorage struct {
 	mu              sync.RWMutex
 }
 
+// NewMemStorage конструктор создания MemStorage.
+// Параметр restore = true инициирует загрузку метрик из файла filename.
+// Параметр needToSyncWrite = true инициирует синхронную запись в файл filename.
 func NewMemStorage(restore, needToSyncWrite bool, filename string) *MemStorage {
 	lgr := logger.NewLogger("mem storage : ", log.LstdFlags|log.Lshortfile)
 	mFloat := make(map[string]float64, initialFloatMapSize)
@@ -75,6 +93,8 @@ func NewMemStorage(restore, needToSyncWrite bool, filename string) *MemStorage {
 	}
 	return &MemStorage{Float: mFloat, Int: mInt, saver: s, logger: lgr, needToSyncWrite: needToSyncWrite}
 }
+
+// SaveAllIntoFile сохранение всех метрик в файл.
 func (s *MemStorage) SaveAllIntoFile() (int, error) {
 	if s.saver == nil {
 		s.logger.Println("can't save metrics into file, saver wasn't initialized")
@@ -117,9 +137,9 @@ func (s *MemStorage) AddGroupOfMetrics(ctx context.Context, sM []metrics.Metrics
 	return nil
 }
 
-var errNotMetricType = errors.New("is not a metric type")
-
 func (s *MemStorage) AddMetric(ctx context.Context, rt RepositoryData) error {
+	var errNotMetricType = errors.New("is not a metric type")
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	switch rt.Type() {

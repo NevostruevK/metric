@@ -25,6 +25,7 @@ type metricSQL struct {
 	value sql.NullFloat64
 }
 
+// DB объект для работы с базой данных для хранения метрик.
 type DB struct {
 	db            *sql.DB
 	stmtGetMetric *sql.Stmt
@@ -32,6 +33,8 @@ type DB struct {
 	init          bool
 }
 
+// NewDB контсруктор DB.
+// connStr строка подключения к базе данных.
 func NewDB(ctx context.Context, connStr string) (*DB, error) {
 	db := &DB{db: nil, logger: logger.NewLogger("postgres : ", log.LstdFlags|log.Lshortfile), init: false}
 	if connStr == "" {
@@ -57,6 +60,7 @@ func NewDB(ctx context.Context, connStr string) (*DB, error) {
 	return db, nil
 }
 
+// ShowMetrics вывод в лог всех метрик из базы.
 func (db *DB) ShowMetrics(ctx context.Context) error {
 
 	db.logger.Println("Show metrics")
@@ -71,6 +75,7 @@ func (db *DB) ShowMetrics(ctx context.Context) error {
 	return nil
 }
 
+// GetAllMetrics вычитывает все метрики из базы.
 func (db *DB) GetAllMetrics(ctx context.Context) ([]metrics.Metrics, error) {
 	var size int
 	err := db.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM metrics").Scan(&size)
@@ -117,6 +122,7 @@ func (db *DB) GetAllMetrics(ctx context.Context) ([]metrics.Metrics, error) {
 	return sM, rows.Err()
 }
 
+// AddGroupOfMetrics добавляет слайс метрик в одной транзакции.
 func (db *DB) AddGroupOfMetrics(ctx context.Context, sM []metrics.Metrics) error {
 
 	tx, err := db.db.BeginTx(ctx, &sql.TxOptions{})
@@ -184,6 +190,7 @@ func (db *DB) AddGroupOfMetrics(ctx context.Context, sM []metrics.Metrics) error
 	return tx.Commit()
 }
 
+// AddMetric добавляет метрику в базу.
 func (db *DB) AddMetric(ctx context.Context, rt storage.RepositoryData) error {
 
 	switch rt.Type() {
@@ -237,6 +244,9 @@ func (db *DB) AddMetric(ctx context.Context, rt storage.RepositoryData) error {
 	return nil
 }
 
+// GetMetric вычитывает метрику из базы.
+// reqType тип метрики.
+// name название метрики.
 func (db *DB) GetMetric(ctx context.Context, reqType, name string) (storage.RepositoryData, error) {
 	if validType := metrics.IsMetricType(reqType); !validType {
 		return nil, fmt.Errorf("type %s is not valid metric type", reqType)
@@ -267,6 +277,7 @@ func (db *DB) GetMetric(ctx context.Context, reqType, name string) (storage.Repo
 	return nil, fmt.Errorf("type %s is not valid metric type", reqType)
 }
 
+// Close прекращение работы с базой.
 func (db *DB) Close() error {
 
 	if !db.init {
@@ -279,6 +290,7 @@ func (db *DB) Close() error {
 	return nil
 }
 
+// Ping проверка коннекта к базе.
 func (db DB) Ping() error {
 	if !db.init {
 		return fmt.Errorf(" Can't ping DB : DataBase wasn't initiated")

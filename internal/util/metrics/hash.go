@@ -6,6 +6,7 @@ import (
 	"github.com/NevostruevK/metric/internal/util/sign"
 )
 
+// CountHash подсчет хеша метрики по строке "имя:тип:значение".
 func (m Metrics) CountHash(key string) (hash string, err error) {
 	switch m.MType {
 	case Gauge:
@@ -21,6 +22,7 @@ func (m Metrics) CountHash(key string) (hash string, err error) {
 	return
 }
 
+// CheckHash проверка хеша метрики.
 func (m Metrics) CheckHash(key string) (bool, error) {
 	hash, err := m.CountHash(key)
 	if err != nil {
@@ -32,6 +34,7 @@ func (m Metrics) CheckHash(key string) (bool, error) {
 	return true, nil
 }
 
+// SetHash запись хеша метрики.
 func (m *Metrics) SetHash(key string) error {
 	hash, err := m.CountHash(key)
 	if err != nil {

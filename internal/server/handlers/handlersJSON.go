@@ -12,6 +12,8 @@ import (
 	"github.com/NevostruevK/metric/internal/util/metrics"
 )
 
+// GetMetricJSONHandler обработчик запроса /value/.
+// Возвращает метрику, полученную в теле запроса.
 func GetMetricJSONHandler(s storage.Repository, hashKey string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
@@ -30,7 +32,6 @@ func GetMetricJSONHandler(s storage.Repository, hashKey string) http.HandlerFunc
 			http.Error(w, msg, http.StatusNotFound)
 			return
 		}
-
 		m = rt.ConvertToMetrics()
 
 		if code, err = sendResponse(w, []metrics.Metrics{m}, false, hashKey); err != nil {
@@ -53,6 +54,8 @@ func prepareMetricsForStorage(sM []metrics.Metrics) ([]metrics.Metrics, error) {
 	return pM, nil
 }
 
+// AddBatchMetricJSONHandler обработчик запроса /updates/.
+// Принимает массив метри из тела запроса.
 func AddBatchMetricJSONHandler(s storage.Repository, hashKey string, cap int) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
@@ -87,6 +90,8 @@ func AddBatchMetricJSONHandler(s storage.Repository, hashKey string, cap int) ht
 	}
 }
 
+// AddMetricJSONHandler обработчик запроса /update/.
+// Принимает метрику из тела запроса.
 func AddMetricJSONHandler(s storage.Repository, hashKey string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sM, code, err := getMetricFromRequest(r, hashKey, 1)

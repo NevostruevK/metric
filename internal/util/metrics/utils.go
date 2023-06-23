@@ -11,7 +11,9 @@ import (
 )
 
 const (
-	MetricsCount      = 29
+	// MetricsCount количество метрик получаемое из runtime.MemStats.
+	MetricsCount = 29
+	// ExtraMetricsCount количество метрик получаемое из github.com/shirou/gopsutil/v3/mem.
 	ExtraMetricsCount = 3
 )
 
@@ -19,7 +21,9 @@ type gauge float64
 type counter int64
 
 const (
-	Gauge   = "gauge"
+	// Gauge тип метрики "gauge".
+	Gauge = "gauge"
+	// Counter тип метрики "counter".
 	Counter = "counter"
 )
 
@@ -29,6 +33,7 @@ func roundGauge(f float64) string {
 	return r.ReplaceAllString(s, "")
 }
 
+// IsMetricType валидация типа метрики.
 func IsMetricType(checkType string) bool {
 	if checkType != Gauge && checkType != Counter {
 		return false
@@ -36,8 +41,11 @@ func IsMetricType(checkType string) bool {
 	return true
 }
 
+// MetricCreater интерфейс создания метрик.
 type MetricCreater interface {
+	// NewGaugeMetric создание метрики типа Gauge.
 	NewGaugeMetric(name string, value float64) MetricCreater
+	// NewCounterMetric создание метрики типа Counter.
 	NewCounterMetric(name string, value int64) MetricCreater
 }
 
@@ -48,6 +56,7 @@ func getRandomFloat64() float64 {
 	return rand.Float64()
 }
 
+// GetAdvanced получение метрик из github.com/shirou/gopsutil/v3/mem.
 func GetAdvanced() ([]Metrics, error) {
 
 	v, err := mem.VirtualMemory()
@@ -61,6 +70,7 @@ func GetAdvanced() ([]Metrics, error) {
 	return sM, nil
 }
 
+// Get получение метрик из runtime.MemStats.
 func Get() []Metrics {
 	sM := make([]Metrics, 0, MetricsCount)
 	var mem runtime.MemStats
@@ -101,6 +111,7 @@ func Get() []Metrics {
 	return sM
 }
 
+// ResetCounter сброс счетчика чтения метрик.
 func ResetCounter() {
 	getRequestCount = 0
 }
