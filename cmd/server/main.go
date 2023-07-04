@@ -16,11 +16,22 @@ import (
 	"github.com/NevostruevK/metric/internal/util/logger"
 )
 
+var (
+	buildVersion = "N/A"
+	buildData    = "N/A"
+	buildCommit  = "N/A"
+)
+
 func main() {
 	gracefulShutdown := make(chan os.Signal, 1)
 	signal.Notify(gracefulShutdown, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
 	lgr := logger.NewLogger("main : ", log.LstdFlags|log.Lshortfile)
+
+	lgr.Println("Build version : " + buildVersion)
+	lgr.Println("Build data    : " + buildData)
+	lgr.Println("Build commit  : " + buildCommit)
+
 	lgr.Println(`Get server's flags`)
 
 	cmd, err := commands.GetServerCommands()
