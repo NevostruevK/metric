@@ -1,3 +1,4 @@
+// Package logger модуль логирования
 package logger
 
 import (

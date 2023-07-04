@@ -1,3 +1,4 @@
+// Package sign предназначен для подписи строки по алгоритму sha256.
 package sign
 
 import (

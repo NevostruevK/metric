@@ -1,3 +1,4 @@
+// Package client Клиент для сервера по сбору метрик.
 package client
 
 import (

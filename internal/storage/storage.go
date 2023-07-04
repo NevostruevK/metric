@@ -1,3 +1,4 @@
+// Package storage организация хранилища в памяти.
 package storage
 
 import (

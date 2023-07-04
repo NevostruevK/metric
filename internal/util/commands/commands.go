@@ -1,3 +1,4 @@
+// Package commands обработка входных параметров для запуска программ
 package commands
 
 import (

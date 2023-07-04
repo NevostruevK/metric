@@ -1,3 +1,4 @@
+// Package fgzip модуль компрессии/декомпрессии данных по алгоритму gzip
 package fgzip
 
 import (

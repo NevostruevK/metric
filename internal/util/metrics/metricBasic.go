@@ -1,3 +1,4 @@
+// Package metrics поддержка операции с метриками.
 package metrics
 
 import (
