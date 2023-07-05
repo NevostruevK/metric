@@ -12,9 +12,13 @@ func Decompress(data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed init decompress reader: %v", err)
 	}
-	defer gz.Close()
-
 	var b bytes.Buffer
+	defer func() {
+		if err = gz.Close(); err != nil {
+			return
+		}
+	}()
+
 	_, err = b.ReadFrom(gz)
 	if err != nil {
 		return nil, fmt.Errorf("failed decompress data: %v", err)

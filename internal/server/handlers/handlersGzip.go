@@ -28,10 +28,14 @@ func CompressHandle(next http.Handler) http.Handler {
 		if err != nil {
 			msg := fmt.Sprintf("ERROR : CompressHandle:gzip.NewWriterLevel returnen the error : %v", err)
 			Logger.Println(msg)
-			io.WriteString(w, msg)
+			_, _ = io.WriteString(w, msg)
 			return
 		}
-		defer gz.Close()
+		defer func() {
+			if err = gz.Close(); err != nil {
+				Logger.Println(err)
+			}
+		}()
 
 		w.Header().Set("Content-Encoding", "gzip")
 		next.ServeHTTP(gzipWriter{ResponseWriter: w, Writer: gz}, r)
@@ -48,10 +52,14 @@ func DecompressHanlder(next http.Handler) http.Handler {
 		if err != nil {
 			msg := fmt.Sprintf("ERROR : DecompressHanlder:gzip.NewReader returnen the error : %v", err)
 			Logger.Println(msg)
-			io.WriteString(w, msg)
+			_, _ = io.WriteString(w, msg)
 			return
 		}
-		defer gz.Close()
+		defer func() {
+			if err = gz.Close(); err != nil {
+				Logger.Println(err)
+			}
+		}()
 		r.Body = gz
 		next.ServeHTTP(w, r)
 	})

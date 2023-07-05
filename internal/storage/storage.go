@@ -77,7 +77,9 @@ func NewMemStorage(restore, needToSyncWrite bool, filename string) *MemStorage {
 		if err != nil {
 			lgr.Printf("Can't load metrics from %s\n", filename)
 		} else {
-			defer l.Close()
+			defer func() {
+				err = l.Close()
+			}()
 			for {
 				m, err := l.ReadMetric()
 				if err != nil {
@@ -145,7 +147,9 @@ func (s *MemStorage) AddMetric(ctx context.Context, rt RepositoryData) error {
 	defer s.mu.Unlock()
 	switch rt.Type() {
 	case metrics.Counter:
-		rt.AddCounterValue(s.Int[rt.Name()])
+		if err := rt.AddCounterValue(s.Int[rt.Name()]); err != nil {
+			s.logger.Println(err)
+		}
 		s.Int[rt.Name()] = rt.CounterValue()
 	case metrics.Gauge:
 		s.Float[rt.Name()] = rt.GaugeValue()
@@ -153,7 +157,9 @@ func (s *MemStorage) AddMetric(ctx context.Context, rt RepositoryData) error {
 		return errNotMetricType
 	}
 	if s.needToSyncWrite {
-		s.saver.WriteMetric(rt)
+		if err := s.saver.WriteMetric(rt); err != nil {
+			s.logger.Println(err)
+		}
 	}
 	return nil
 }

@@ -89,7 +89,11 @@ func (db *DB) GetAllMetrics(ctx context.Context) ([]metrics.Metrics, error) {
 		db.logger.Println(err)
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err = rows.Close(); err != nil {
+			db.logger.Println(err)
+		}
+	}()
 	mSQL := metricSQL{}
 	for rows.Next() {
 		newDelta := sql.NullInt64{}
@@ -283,7 +287,9 @@ func (db *DB) Close() error {
 	if !db.init {
 		return fmt.Errorf(" Can't close DB : DataBase wasn't initiated")
 	}
-	db.stmtGetMetric.Close()
+	if err := db.stmtGetMetric.Close(); err != nil {
+		return err
+	}
 	if err := db.db.Close(); err != nil {
 		return fmt.Errorf(" Can't close DB %w", err)
 	}

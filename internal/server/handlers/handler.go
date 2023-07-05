@@ -26,7 +26,7 @@ func GetPingHandler(s storage.Repository) http.HandlerFunc {
 			return
 		}
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprintln(w, "ping database ok")
+		_, _ = fmt.Fprintln(w, "ping database ok")
 	}
 }
 
@@ -56,13 +56,13 @@ func GetAllMetricsHandler(s storage.Repository) http.HandlerFunc {
 				</body>
 			</html>`
 
-		w.Write([]byte(prefix))
+		_, _ = w.Write([]byte(prefix))
 		for _, v := range sm {
-			w.Write([]byte("<tr><td>" + v.Name() + "</td>"))
-			w.Write([]byte("<td>" + v.Type() + "</td>"))
-			w.Write([]byte("<td>" + v.StringValue() + "</td></tr>"))
+			_, _ = w.Write([]byte("<tr><td>" + v.Name() + "</td>"))
+			_, _ = w.Write([]byte("<td>" + v.Type() + "</td>"))
+			_, _ = w.Write([]byte("<td>" + v.StringValue() + "</td></tr>"))
 		}
-		w.Write([]byte(suffix))
+		_, _ = w.Write([]byte(suffix))
 	}
 }
 
@@ -94,7 +94,7 @@ func GetMetricHandler(s storage.Repository) http.HandlerFunc {
 		}
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "text/plain")
-		fmt.Fprintln(w, rt.StringValue())
+		_, _ = fmt.Fprintln(w, rt.StringValue())
 	}
 }
 
@@ -134,6 +134,6 @@ func AddMetricHandler(s storage.Repository) http.HandlerFunc {
 		}
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "text/plain")
-		fmt.Fprintln(w, m.StringWithSlash())
+		_, _ = fmt.Fprintln(w, m.StringWithSlash())
 	}
 }

@@ -96,7 +96,9 @@ func (w *worker) Send(ctx context.Context, sM []metrics.Metrics) (int, error) {
 			w.logger.Printf("ERROR : SendMetric(JSON):c.client.Do(request) error %v\n", err)
 			return i, err
 		}
-		defer response.Body.Close()
+		defer func() {
+			err = response.Body.Close()
+		}()
 		body, err := io.ReadAll(response.Body)
 		if err != nil {
 			w.logger.Printf("ERROR : SendMetric(JSON):io.ReadAll error %v\n", err)

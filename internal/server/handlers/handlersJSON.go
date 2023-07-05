@@ -75,7 +75,7 @@ func AddBatchMetricJSONHandler(s storage.Repository, hashKey string, cap int) ht
 			return
 		}
 
-		if err := s.AddGroupOfMetrics(context.Background(), sM); err != nil {
+		if err = s.AddGroupOfMetrics(context.Background(), sM); err != nil {
 			msg := fmt.Sprintf(" ERROR : AddBatchMetricJSONHandler:AddGroupOfMetrics returned the error : %v", err)
 			Logger.Println(msg)
 			http.Error(w, msg, http.StatusInternalServerError)
@@ -101,7 +101,7 @@ func AddMetricJSONHandler(s storage.Repository, hashKey string) http.HandlerFunc
 			http.Error(w, msg, code)
 			return
 		}
-		if err := s.AddMetric(context.Background(), &sM[0]); err != nil {
+		if err = s.AddMetric(context.Background(), &sM[0]); err != nil {
 			msg := fmt.Sprintf(" ERROR : AddMetricJSONHandler:AddMetric returned the error : %v", err)
 			Logger.Println(msg)
 			http.Error(w, msg, http.StatusInternalServerError)
@@ -122,7 +122,9 @@ func getMetricFromRequest(r *http.Request, hashKey string, initialCapacity int) 
 	}
 
 	b, err := io.ReadAll(r.Body)
-	defer r.Body.Close()
+	defer func() {
+		err = r.Body.Close()
+	}()
 	if err != nil {
 		return nil, http.StatusBadRequest, err
 	}
@@ -186,6 +188,6 @@ func sendResponse(w http.ResponseWriter, sM []metrics.Metrics, sendSlice bool, h
 		return http.StatusInternalServerError, err
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(data)
+	_, _ = w.Write(data)
 	return http.StatusOK, nil
 }

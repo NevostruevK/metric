@@ -52,9 +52,9 @@ func main() {
 		lgr.Println(`Init Memory storage`)
 		st = storage.NewMemStorage(cmd.Restore, cmd.StoreInterval == 0, cmd.StoreFile)
 		defer func() {
-			count, err := st.SaveAllIntoFile()
-			if err != nil {
-				lgr.Printf("ERROR : st.SaveAllIntoFile returned the error %v\n", err)
+			count, errSave := st.SaveAllIntoFile()
+			if errSave != nil {
+				lgr.Printf("ERROR : st.SaveAllIntoFile returned the error %v\n", errSave)
 			}
 			lgr.Printf("saved %d metrics\n", count)
 			st.ShowMetrics(context.Background())
@@ -82,9 +82,9 @@ func main() {
 	for {
 		select {
 		case <-storeInterval.C:
-			count, err := st.SaveAllIntoFile()
-			if err != nil {
-				lgr.Printf("ERROR : st.SaveAllIntoFile returned the error %v\n", err)
+			count, errSave := st.SaveAllIntoFile()
+			if errSave != nil {
+				lgr.Printf("ERROR : st.SaveAllIntoFile returned the error %v\n", errSave)
 			}
 			lgr.Printf("saved %d metrics\n", count)
 		case <-gracefulShutdown:

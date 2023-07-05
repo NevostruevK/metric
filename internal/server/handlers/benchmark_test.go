@@ -37,35 +37,12 @@ func Request(ts *httptest.Server, method, path string, data []byte) (int, []byte
 		panic(err)
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		err = resp.Body.Close()
+	}()
 
 	return resp.StatusCode, body
 }
-
-/*
-func testRequestForBench(ts *httptest.Server, method, path string, data []byte) int {
-	req, err := http.NewRequest(method, ts.URL+path, bytes.NewBuffer(data))
-	if err != nil {
-		panic(err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		panic(err)
-	}
-
-	_, err = io.ReadAll(resp.Body)
-	if err != nil {
-		panic(err)
-	}
-
-	defer resp.Body.Close()
-
-	return resp.StatusCode
-}
-*/
 
 func prepareData(sM []metrics.Metrics) []byte {
 	for i, m := range sM {

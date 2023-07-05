@@ -24,7 +24,9 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string) (int, s
 	respBody, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 
-	defer resp.Body.Close()
+	defer func() {
+		err = resp.Body.Close()
+	}()
 
 	return resp.StatusCode, string(respBody)
 }
