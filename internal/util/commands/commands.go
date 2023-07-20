@@ -21,6 +21,7 @@ const (
 	defKey            = ""
 	defDataBaseDSN    = ""
 	defRateLimit      = 1
+	defCryptoKey      = ""
 )
 
 type Commands struct {
@@ -33,6 +34,7 @@ type Commands struct {
 	Key            string        `env:"KEY" envDefault:""`
 	DataBaseDSN    string        `env:"DATABASE_DSN" envDefault:""`
 	RateLimit      int           `env:"RATE_LIMIT" envDefault:"1"`
+	CryptoKey      string        `env:"CRYPTO_KEY" envDefault:""`
 }
 
 func GetAgentCommands() (*Commands, error) {
@@ -41,6 +43,7 @@ func GetAgentCommands() (*Commands, error) {
 	pollIntervalPtr := flag.Duration("p", defPollInterval, "report interval type : time.duration")
 	keyPtr := flag.String("k", defKey, "key for signing metrics")
 	rateLimitPtr := flag.Int("l", defRateLimit, "requests count")
+	cryptoKeyPtr := flag.String("crypto-key", defCryptoKey, "file path to public key")
 	flag.Parse()
 
 	cmd := Commands{}
@@ -60,6 +63,9 @@ func GetAgentCommands() (*Commands, error) {
 	if _, ok := os.LookupEnv("RATE_LIMIT"); !ok || err != nil {
 		cmd.RateLimit = *rateLimitPtr
 	}
+	if _, ok := os.LookupEnv("CRYPTO_KEY"); !ok || err != nil {
+		cmd.CryptoKey = *cryptoKeyPtr
+	}
 	if cmd.RateLimit == 0 {
 		cmd.RateLimit = 1
 	}
@@ -76,6 +82,7 @@ func GetServerCommands() (*Commands, error) {
 	storeFilePtr := flag.String("f", defStoreFile, "file for saving metrics")
 	keyPtr := flag.String("k", defKey, "key for signing metrics")
 	dataBasePtr := flag.String("d", defDataBaseDSN, "data base address")
+	cryptoKeyPtr := flag.String("crypto-key", defCryptoKey, "file path to private key")
 	flag.Parse()
 
 	cmd := Commands{}
@@ -98,6 +105,9 @@ func GetServerCommands() (*Commands, error) {
 	}
 	if _, ok := os.LookupEnv("DATABASE_DSN"); !ok || err != nil {
 		cmd.DataBaseDSN = *dataBasePtr
+	}
+	if _, ok := os.LookupEnv("CRYPTO_KEY"); !ok || err != nil {
+		cmd.CryptoKey = *cryptoKeyPtr
 	}
 	return &cmd, err
 }

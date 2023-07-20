@@ -25,7 +25,7 @@ var (
 func main() {
 	gracefulShutdown := make(chan os.Signal, 1)
 	signal.Notify(gracefulShutdown, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-
+	ctx := context.Background()
 	lgr := logger.NewLogger("main : ", log.LstdFlags|log.Lshortfile)
 
 	lgr.Println("Build version : " + buildVersion)
@@ -43,7 +43,7 @@ func main() {
 	s := &http.Server{}
 
 	lgr.Println(`Init database`)
-	db, err := db.NewDB(context.Background(), cmd.DataBaseDSN)
+	db, err := db.NewDB(ctx, cmd.DataBaseDSN)
 	if err != nil || cmd.DataBaseDSN == "" {
 		lgr.Println("Can't compleate DB connection: ", err)
 		if err != nil {
@@ -57,15 +57,15 @@ func main() {
 				lgr.Printf("ERROR : st.SaveAllIntoFile returned the error %v\n", errSave)
 			}
 			lgr.Printf("saved %d metrics\n", count)
-			st.ShowMetrics(context.Background())
+			st.ShowMetrics(ctx)
 			if err = st.Close(); err != nil {
 				lgr.Printf("ERROR : st.Close returned the error %v\n", err)
 			}
 		}()
-		s = server.NewServer(st, cmd.Address, cmd.Key)
+		s = server.NewServer(st, cmd.Address, cmd.Key, cmd.CryptoKey)
 	} else {
 		defer func() {
-			if err = db.ShowMetrics(context.Background()); err != nil {
+			if err = db.ShowMetrics(ctx); err != nil {
 				lgr.Printf("ERROR : db.ShowMetrics returned the error %v\n", err)
 			}
 			if err = db.Close(); err != nil {
@@ -73,7 +73,7 @@ func main() {
 			}
 		}()
 		storeInterval.Stop()
-		s = server.NewServer(db, cmd.Address, cmd.Key)
+		s = server.NewServer(db, cmd.Address, cmd.Key, cmd.CryptoKey)
 	}
 	lgr.Printf("Start server")
 	go func() {
@@ -90,7 +90,7 @@ func main() {
 		case <-gracefulShutdown:
 			lgr.Println("Server Get Signal!")
 			storeInterval.Stop()
-			if err = s.Shutdown(context.Background()); err != nil {
+			if err = s.Shutdown(ctx); err != nil {
 				lgr.Printf("ERROR : Server Shutdown error %v", err)
 			} else {
 				lgr.Printf("Server Shutdown ")

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/NevostruevK/metric/internal/util/commands"
+	"github.com/NevostruevK/metric/internal/util/crypt"
 	"github.com/NevostruevK/metric/internal/util/fgzip"
 	"github.com/NevostruevK/metric/internal/util/logger"
 	"github.com/NevostruevK/metric/internal/util/metrics"
@@ -26,6 +27,7 @@ type worker struct {
 	client  *http.Client
 	address string
 	hashKey string
+	crypt   *crypt.Crypt
 	logger  *log.Logger
 }
 
@@ -34,9 +36,15 @@ type workers struct {
 	workers []worker
 }
 
-func NewWorker(address, hashKey string, id int) *worker {
+func NewWorker(address, hashKey string, id int, crypt *crypt.Crypt) *worker {
 	name := fmt.Sprintf("worker %d ", id)
-	return &worker{client: &http.Client{}, address: address, hashKey: hashKey, logger: logger.NewLogger(name, log.LstdFlags|log.Lshortfile)}
+	return &worker{
+		client:  &http.Client{},
+		address: address,
+		hashKey: hashKey,
+		logger:  logger.NewLogger(name, log.LstdFlags|log.Lshortfile),
+		crypt:   crypt,
+	}
 }
 
 func (w *worker) start(ctx context.Context, inCh, reuseCh chan []metrics.Metrics, free *int32) {
@@ -66,6 +74,22 @@ func (w *worker) start(ctx context.Context, inCh, reuseCh chan []metrics.Metrics
 	}
 }
 
+func PrepareDataForMetric(m metrics.Metrics, hashKey string, crypt *crypt.Crypt) ([]byte, error) {
+	if hashKey != "" {
+		if err := m.SetHash(hashKey); err != nil {
+			return nil, err
+		}
+	}
+	data, err := json.Marshal(m)
+	if err != nil {
+		return nil, err
+	}
+	if crypt != nil {
+		return crypt.Crypt(data)
+	}
+	return data, nil
+}
+
 func (w *worker) Send(ctx context.Context, sM []metrics.Metrics) (int, error) {
 	endpoint := url.URL{
 		Scheme: "http",
@@ -73,16 +97,9 @@ func (w *worker) Send(ctx context.Context, sM []metrics.Metrics) (int, error) {
 		Path:   "/update/",
 	}
 	for i, m := range sM {
-		if w.hashKey != "" {
-			if err := m.SetHash(w.hashKey); err != nil {
-				msg := fmt.Sprintf("ERROR : SendMetric(JSON): can't set hash for metric %v , error %v\n", m, err)
-				w.logger.Println(msg)
-				return i, fmt.Errorf(msg)
-			}
-		}
-		data, err := json.Marshal(m)
+		data, err := PrepareDataForMetric(m, w.hashKey, w.crypt)
 		if err != nil {
-			w.logger.Printf("ERROR : SendMetric(JSON):json.Marshal error %v\n", err)
+			w.logger.Printf("ERROR : PrepareDataForMetric %v failed with %v\n", m, err)
 			return i, err
 		}
 		request, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint.String(), bytes.NewBuffer(data))
@@ -124,8 +141,12 @@ func StartAgent(ctx context.Context, cmd *commands.Commands) {
 	chIn := make(chan []metrics.Metrics)
 	chOut := make(chan []metrics.Metrics)
 	w := &workers{free: 0, workers: make([]worker, 0, cmd.RateLimit)}
+	cr, err := crypt.NewCrypt(cmd.CryptoKey)
+	if err != nil {
+		lgr.Printf("failed to create crypt entity %v", err)
+	}
 	for i := 0; i < cmd.RateLimit; i++ {
-		w.workers = append(w.workers, *NewWorker(cmd.Address, cmd.Key, i))
+		w.workers = append(w.workers, *NewWorker(cmd.Address, cmd.Key, i, cr))
 		go w.workers[i].start(ctx, chOut, chIn, &w.free)
 	}
 	go CollectMetrics(ctx, cmd.PollInterval, chIn)

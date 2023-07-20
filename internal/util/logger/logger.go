@@ -27,6 +27,7 @@ func LogCommands(cmd *commands.Commands, isServer bool, err error) {
 	}
 	logger.Printf("ADDRESS = %s\n", cmd.Address)
 	logger.Printf("KEY = %s\n", cmd.Key)
+	logger.Printf("CRYPTO_KEY = %s\n", cmd.CryptoKey)
 	if err != nil {
 		logger.Printf("ERROR : read environment with the error: %v\n", err)
 	}

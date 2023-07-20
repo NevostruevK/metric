@@ -7,6 +7,7 @@ import (
 
 	"github.com/NevostruevK/metric/internal/server/handlers"
 	"github.com/NevostruevK/metric/internal/storage"
+	"github.com/NevostruevK/metric/internal/util/crypt"
 	"github.com/NevostruevK/metric/internal/util/logger"
 	"github.com/go-chi/chi/v5"
 )
@@ -17,12 +18,19 @@ const initialBatchMetricCapacity = 200
 type Server *http.Server
 
 // NewServer создание сервера на основе роутера github.com/go-chi/chi/v5.
-func NewServer(s storage.Repository, address, hashKey string) Server {
+func NewServer(s storage.Repository, address, hashKey, cryptKey string) Server {
 	handlers.Logger = logger.NewLogger(`server: `, log.LstdFlags)
+
+	dcr, err := crypt.NewDecrypt(cryptKey)
+	if err != nil {
+		handlers.Logger.Printf("failed to create decrypt entity %v", err)
+	}
+
 	r := chi.NewRouter()
 
 	handler := handlers.CompressHandle(r)
 	handler = handlers.DecompressHanlder(handler)
+	handler = handlers.DecryptHanlder(handler, dcr)
 	handler = handlers.LoggerHanlder(handler, handlers.Logger)
 
 	r.Post("/updates/", handlers.AddBatchMetricJSONHandler(s, hashKey, initialBatchMetricCapacity))
