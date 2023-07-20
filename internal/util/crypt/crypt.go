@@ -4,10 +4,12 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rsa"
-	"fmt"
+	"errors"
 
 	"github.com/NevostruevK/metric/internal/util/crypt/session"
 )
+
+var ErrCryptNotInit = errors.New("entity Crypt isn't initialized")
 
 type Crypt struct {
 	PublicKey *rsa.PublicKey
@@ -27,7 +29,7 @@ func NewCrypt(fname string) (*Crypt, error) {
 
 func (c *Crypt) Crypt(raw []byte) ([]byte, error) {
 	if c == nil {
-		return raw, fmt.Errorf("Error entity Crypt isn't initialized")
+		return raw, ErrCryptNotInit
 	}
 	k, err := session.NewKey()
 	if err != nil {

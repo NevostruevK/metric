@@ -9,7 +9,10 @@ import (
 	"github.com/NevostruevK/metric/internal/util/crypt/session"
 )
 
-var ErrInputIsTooSmall = errors.New("input data is smaller than session key size")
+var (
+	ErrInputIsTooSmall = errors.New("input data is smaller than session key size")
+	ErrDecryptNotInit  = errors.New("entity Decrypt isn't initialized")
+)
 
 type Decrypt struct {
 	PrivateKey *rsa.PrivateKey
@@ -17,6 +20,9 @@ type Decrypt struct {
 }
 
 func NewDecrypt(fname string) (*Decrypt, error) {
+	if fname == "" {
+		return nil, nil
+	}
 	PrivateKey, err := GetPrivateKey(fname)
 	if err != nil {
 		return nil, err
@@ -24,7 +30,10 @@ func NewDecrypt(fname string) (*Decrypt, error) {
 	return &Decrypt{PrivateKey: PrivateKey, Nonce: *new([12]byte)}, nil
 }
 
-func (d Decrypt) Decrypt(encrypted []byte) ([]byte, error) {
+func (d *Decrypt) Decrypt(encrypted []byte) ([]byte, error) {
+	if d == nil {
+		return encrypted, ErrDecryptNotInit
+	}
 	k, err := session.NewKey()
 	if err != nil {
 		return encrypted, err
