@@ -1,0 +1,7 @@
+{
+  "address": "localhost:8080",
+  "restore": false,
+  "store_interval": "500s",
+  "database_dsn": "",
+  "crypto_key": "private.pem"
+}

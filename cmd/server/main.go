@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -27,30 +28,36 @@ func main() {
 	signal.Notify(gracefulShutdown, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	ctx := context.Background()
 	lgr := logger.NewLogger("main : ", log.LstdFlags|log.Lshortfile)
-
+	/*
+		cmd1 := commands.NewServerOptions()
+		cmd1.ReadConfig("config.json")
+		fmt.Println(cmd1)
+	*/
+	fmt.Println("---------------")
 	lgr.Println("Build version : " + buildVersion)
 	lgr.Println("Build data    : " + buildData)
 	lgr.Println("Build commit  : " + buildCommit)
 
 	lgr.Println(`Get server's flags`)
 
-	cmd, err := commands.GetServerCommands()
-	logger.LogCommands(cmd, true, err)
+	cfg := commands.GetServerConfig()
+	//	cmd, err := commands.GetServerCommands()
+	logger.LogCommands(cfg, true)
 
-	storeInterval := time.NewTicker(cmd.StoreInterval)
+	storeInterval := time.NewTicker(cfg.StoreInterval.Duration)
 	st := &storage.MemStorage{}
 
 	s := &http.Server{}
 
 	lgr.Println(`Init database`)
-	db, err := db.NewDB(ctx, cmd.DataBaseDSN)
-	if err != nil || cmd.DataBaseDSN == "" {
+	db, err := db.NewDB(ctx, cfg.DataBaseDSN)
+	if err != nil || cfg.DataBaseDSN == "" {
 		lgr.Println("Can't compleate DB connection: ", err)
 		if err != nil {
 			lgr.Printf("ERROR : NewDB returned the error %v\n", err)
 		}
 		lgr.Println(`Init Memory storage`)
-		st = storage.NewMemStorage(cmd.Restore, cmd.StoreInterval == 0, cmd.StoreFile)
+		st = storage.NewMemStorage(cfg.Restore, cfg.StoreInterval.Duration == 0, cfg.StoreFile)
 		defer func() {
 			count, errSave := st.SaveAllIntoFile()
 			if errSave != nil {
@@ -62,7 +69,7 @@ func main() {
 				lgr.Printf("ERROR : st.Close returned the error %v\n", err)
 			}
 		}()
-		s = server.NewServer(st, cmd.Address, cmd.Key, cmd.CryptoKey)
+		s = server.NewServer(st, cfg.Address, cfg.HashKey, cfg.CryptoKey)
 	} else {
 		defer func() {
 			if err = db.ShowMetrics(ctx); err != nil {
@@ -73,7 +80,7 @@ func main() {
 			}
 		}()
 		storeInterval.Stop()
-		s = server.NewServer(db, cmd.Address, cmd.Key, cmd.CryptoKey)
+		s = server.NewServer(db, cfg.Address, cfg.HashKey, cfg.CryptoKey)
 	}
 	lgr.Printf("Start server")
 	go func() {

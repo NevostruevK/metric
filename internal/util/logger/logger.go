@@ -10,7 +10,7 @@ import (
 
 var logWriter = os.Stdout
 
-func LogCommands(cmd *commands.Commands, isServer bool, err error) {
+func LogCommands(cmd *commands.Config, isServer bool) {
 
 	var logger *log.Logger
 	if isServer {
@@ -26,11 +26,8 @@ func LogCommands(cmd *commands.Commands, isServer bool, err error) {
 		logger.Printf("RATE_LIMIT = %v\n", cmd.RateLimit)
 	}
 	logger.Printf("ADDRESS = %s\n", cmd.Address)
-	logger.Printf("KEY = %s\n", cmd.Key)
+	logger.Printf("KEY = %s\n", cmd.HashKey)
 	logger.Printf("CRYPTO_KEY = %s\n", cmd.CryptoKey)
-	if err != nil {
-		logger.Printf("ERROR : read environment with the error: %v\n", err)
-	}
 }
 
 func NewLogger(name string, flags int) *log.Logger {

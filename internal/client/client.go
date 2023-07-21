@@ -135,7 +135,7 @@ func (w *worker) Send(ctx context.Context, sM []metrics.Metrics) (int, error) {
 	return len(sM), nil
 }
 
-func StartAgent(ctx context.Context, cmd *commands.Commands) {
+func StartAgent(ctx context.Context, cmd *commands.Config) {
 	lgr := logger.NewLogger("agent : ", log.LstdFlags|log.Lshortfile)
 	lgr.Println("Start")
 	chIn := make(chan []metrics.Metrics)
@@ -146,11 +146,11 @@ func StartAgent(ctx context.Context, cmd *commands.Commands) {
 		lgr.Printf("failed to create crypt entity %v", err)
 	}
 	for i := 0; i < cmd.RateLimit; i++ {
-		w.workers = append(w.workers, *NewWorker(cmd.Address, cmd.Key, i, cr))
+		w.workers = append(w.workers, *NewWorker(cmd.Address, cmd.HashKey, i, cr))
 		go w.workers[i].start(ctx, chOut, chIn, &w.free)
 	}
-	go CollectMetrics(ctx, cmd.PollInterval, chIn)
-	reportTicker := time.NewTicker(cmd.ReportInterval)
+	go CollectMetrics(ctx, time.Duration(cmd.PollInterval.Duration) /*cmd.PollInterval*/, chIn)
+	reportTicker := time.NewTicker(cmd.ReportInterval.Duration)
 	defer reportTicker.Stop()
 	sM := make([]metrics.Metrics, 0, metricsLimit)
 

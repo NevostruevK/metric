@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -32,10 +33,13 @@ func main() {
 
 	lgr.Println(`Get server's flags`)
 
-	cmd, err := commands.GetAgentCommands()
-	logger.LogCommands(cmd, false, err)
+	cfg := commands.GetAgentConfig()
+	fmt.Println(cfg)
 
-	go client.StartAgent(ctx, cmd)
+	//	cmd, err := commands.GetAgentCommands()
+	logger.LogCommands(cfg, false)
+
+	go client.StartAgent(ctx, cfg)
 
 	select {
 	case <-gracefulShutdown:

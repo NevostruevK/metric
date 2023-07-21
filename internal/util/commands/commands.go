@@ -3,111 +3,228 @@ package commands
 
 import (
 	"flag"
+	"fmt"
+	"log"
 	"os"
 	"time"
 
+	"github.com/NevostruevK/metric/internal/util/commands/duration"
 	"github.com/caarlos0/env/v7"
 )
 
 const maxRateLimit = 256
 
 const (
-	defAddress        = "127.0.0.1:8080"
-	defStoreFile      = "/tmp/devops-metrics-db.json"
 	defReportInterval = time.Second * 10
 	defPollInterval   = time.Second * 2
 	defStoreInterval  = time.Second * 300
-	defRestore        = true
-	defKey            = ""
+	defAddress        = "127.0.0.1:8080"
+	defStoreFile      = "/tmp/devops-metrics-db.json"
+	defHashKey        = ""
 	defDataBaseDSN    = ""
-	defRateLimit      = 1
 	defCryptoKey      = ""
+	defCongig         = ""
+	defRateLimit      = 1
+	defRestore        = true
 )
 
-type Commands struct {
-	Address        string        `env:"ADDRESS" envDefault:"127.0.0.1:8080"`
-	StoreFile      string        `env:"STORE_FILE" envDefault:""`
+const (
+	usgReportInterval = "report interval"
+	usgPollInterval   = "poll interval"
+	usgStoreInterval  = "store interval"
+	usgAddress        = "server address HOST:PORT"
+	usgStoreFile      = "store file"
+	usgHashKey        = "key for signing metrics"
+	usgDataBaseDSN    = "dsn"
+	usgCryptoKey      = "path to private/public key"
+	usgCongig         = "path to config file"
+	usgRateLimit      = "requests count"
+	usgRestore        = "restore value"
+)
+
+const (
+	flgReportInterval = "r"
+	flgPollInterval   = "p"
+	flgStoreInterval  = "i"
+	flgAddress        = "a"
+	flgStoreFile      = "f"
+	flgHashKey        = "k"
+	flgDataBaseDSN    = "d"
+	flgCryptoKey      = "crypto-key"
+	flgConfig         = "config"
+	flgConfigShort    = "c"
+	flgRateLimit      = "l"
+	flgRestore        = "r"
+)
+
+type Environment struct {
 	ReportInterval time.Duration `env:"REPORT_INTERVAL" envDefault:"10s"`
 	PollInterval   time.Duration `env:"POLL_INTERVAL" envDefault:"2s"`
 	StoreInterval  time.Duration `env:"STORE_INTERVAL" envDefault:"300s"`
-	Restore        bool          `env:"RESTORE" envDefault:"true"`
-	Key            string        `env:"KEY" envDefault:""`
+	Address        string        `env:"ADDRESS" envDefault:"127.0.0.1:8080"`
+	StoreFile      string        `env:"STORE_FILE" envDefault:""`
+	HashKey        string        `env:"KEY" envDefault:""`
 	DataBaseDSN    string        `env:"DATABASE_DSN" envDefault:""`
-	RateLimit      int           `env:"RATE_LIMIT" envDefault:"1"`
 	CryptoKey      string        `env:"CRYPTO_KEY" envDefault:""`
+	//	Config         string        `env:"CONFIG" envDefault:""`
+	RateLimit int  `env:"RATE_LIMIT" envDefault:"1"`
+	Restore   bool `env:"RESTORE" envDefault:"true"`
 }
 
-func GetAgentCommands() (*Commands, error) {
-	addrPtr := flag.String("a", defAddress, "server address HOST:PORT")
-	reportIntervalPtr := flag.Duration("r", defReportInterval, "report interval type : time.duration")
-	pollIntervalPtr := flag.Duration("p", defPollInterval, "report interval type : time.duration")
-	keyPtr := flag.String("k", defKey, "key for signing metrics")
-	rateLimitPtr := flag.Int("l", defRateLimit, "requests count")
-	cryptoKeyPtr := flag.String("crypto-key", defCryptoKey, "file path to public key")
+func GetAgentConfig() *Config {
+	var (
+		reportInterval = flag.Duration(flgReportInterval, defReportInterval, usgReportInterval)
+		pollInterval   = flag.Duration(flgPollInterval, defPollInterval, usgPollInterval)
+		address        = flag.String(flgAddress, defAddress, usgAddress)
+		hashKey        = flag.String(flgHashKey, defHashKey, usgHashKey)
+		cryptoKey      = flag.String(flgCryptoKey, defCryptoKey, usgCryptoKey)
+		rateLimit      = flag.Int(flgRateLimit, defRateLimit, usgRateLimit)
+		config         = getFlagConfigValue()
+	)
 	flag.Parse()
+	e := Environment{}
+	err := env.Parse(&e)
+	if err != nil {
+		log.Fatal(err)
+	}
+	c := NewAgentConfig()
+	fmt.Println(c)
+	c.ReadConfig(getConfigPath("CONFIG", *config))
+	fmt.Println(c)
 
-	cmd := Commands{}
-	err := env.Parse(&cmd)
-	if _, ok := os.LookupEnv("ADDRESS"); !ok || err != nil {
-		cmd.Address = *addrPtr
+	if value, ok := selectString("ADDRESS", "", *address); ok {
+		c.setOption(withAddress(value))
 	}
-	if _, ok := os.LookupEnv("REPORT_INTERVAL"); !ok || err != nil {
-		cmd.ReportInterval = *reportIntervalPtr
+
+	if value, ok := selectString("KEY", "", *hashKey); ok {
+		c.setOption(withHashKey(value))
 	}
-	if _, ok := os.LookupEnv("POLL_INTERVAL"); !ok || err != nil {
-		cmd.PollInterval = *pollIntervalPtr
+
+	if value, ok := selectString("CRYPTO_KEY", "", *cryptoKey); ok {
+		c.setOption(withCryptoKey(value))
 	}
-	if _, ok := os.LookupEnv("KEY"); !ok || err != nil {
-		cmd.Key = *keyPtr
+
+	if value, ok := selectDuration("REPORT_INTERVAL", time.Duration(0), e.ReportInterval, *reportInterval); ok {
+		c.setOption(withReportInterval(duration.NewDuration(value)))
 	}
-	if _, ok := os.LookupEnv("RATE_LIMIT"); !ok || err != nil {
-		cmd.RateLimit = *rateLimitPtr
+
+	if value, ok := selectDuration("POOL_INTERVAL", time.Duration(0), e.PollInterval, *pollInterval); ok {
+		c.setOption(withPollInterval(duration.NewDuration(value)))
 	}
-	if _, ok := os.LookupEnv("CRYPTO_KEY"); !ok || err != nil {
-		cmd.CryptoKey = *cryptoKeyPtr
+
+	if value, ok := selectInt("RATE_LIMIT", 0, e.RateLimit, *rateLimit); ok {
+		c.setOption(withRateLimit(value))
 	}
-	if cmd.RateLimit == 0 {
-		cmd.RateLimit = 1
+	if c.RateLimit == 0 {
+		c.RateLimit = 1
 	}
-	if cmd.RateLimit > maxRateLimit {
-		cmd.RateLimit = maxRateLimit
+	if c.RateLimit > maxRateLimit {
+		c.RateLimit = maxRateLimit
 	}
-	return &cmd, err
+	return c
 }
 
-func GetServerCommands() (*Commands, error) {
-	addrPtr := flag.String("a", defAddress, "server address in format  Host:Port")
-	restorePtr := flag.Bool("r", defRestore, "set if you need to load metric from file")
-	storeIntervalPtr := flag.Duration("i", defStoreInterval, "store interval type : time.duration")
-	storeFilePtr := flag.String("f", defStoreFile, "file for saving metrics")
-	keyPtr := flag.String("k", defKey, "key for signing metrics")
-	dataBasePtr := flag.String("d", defDataBaseDSN, "data base address")
-	cryptoKeyPtr := flag.String("crypto-key", defCryptoKey, "file path to private key")
+func GetServerConfig() *Config {
+	var (
+		storeInterval = flag.Duration(flgStoreInterval, defStoreInterval, usgStoreInterval)
+		address       = flag.String(flgAddress, defAddress, usgAddress)
+		storeFile     = flag.String(flgStoreFile, defStoreFile, usgStoreFile)
+		hashKey       = flag.String(flgHashKey, defHashKey, usgHashKey)
+		dataBaseDSN   = flag.String(flgDataBaseDSN, defDataBaseDSN, usgDataBaseDSN)
+		cryptoKey     = flag.String(flgCryptoKey, defCryptoKey, usgCryptoKey)
+		restore       = flag.Bool(flgRestore, defRestore, usgRestore)
+		config        = getFlagConfigValue()
+	)
 	flag.Parse()
+	e := Environment{}
+	err := env.Parse(&e)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	cmd := Commands{}
-	err := env.Parse(&cmd)
+	c := NewServerConfig()
+	c.ReadConfig(getConfigPath("CONFIG", *config))
 
-	if _, ok := os.LookupEnv("ADDRESS"); !ok || err != nil {
-		cmd.Address = *addrPtr
+	if value, ok := selectDuration("STORE_INTERVAL", time.Duration(0), e.StoreInterval, *storeInterval); ok {
+		c.setOption(withStoreInterval(duration.NewDuration(value)))
 	}
-	if _, ok := os.LookupEnv("RESTORE"); !ok || err != nil {
-		cmd.Restore = *restorePtr
+
+	if value, ok := selectString("ADDRESS", "", *address); ok {
+		c.setOption(withAddress(value))
 	}
-	if _, ok := os.LookupEnv("STORE_INTERVAL"); !ok || err != nil {
-		cmd.StoreInterval = *storeIntervalPtr
+
+	if value, ok := selectString("STORE_FILE", "", *storeFile); ok {
+		c.setOption(withStoreFile(value))
 	}
-	if _, ok := os.LookupEnv("STORE_FILE"); !ok || err != nil {
-		cmd.StoreFile = *storeFilePtr
+
+	if value, ok := selectString("KEY", "", *hashKey); ok {
+		c.setOption(withHashKey(value))
 	}
-	if _, ok := os.LookupEnv("KEY"); !ok || err != nil {
-		cmd.Key = *keyPtr
+
+	if value, ok := selectString("DATABASE_DSN", "", *dataBaseDSN); ok {
+		c.setOption(withDataBaseDSN(value))
 	}
-	if _, ok := os.LookupEnv("DATABASE_DSN"); !ok || err != nil {
-		cmd.DataBaseDSN = *dataBasePtr
+
+	if value, ok := selectString("CRYPTO_KEY", "", *cryptoKey); ok {
+		c.setOption(withCryptoKey(value))
 	}
-	if _, ok := os.LookupEnv("CRYPTO_KEY"); !ok || err != nil {
-		cmd.CryptoKey = *cryptoKeyPtr
+
+	if value, ok := selectBool("RESTORE", defRestore, e.Restore, *restore); ok {
+		c.setOption(withRestore(value))
 	}
-	return &cmd, err
+	return c
+}
+
+func getFlagConfigValue() *string {
+	var config string
+	flag.StringVar(&config, flgConfig, defCongig, usgCongig)
+	flag.StringVar(&config, flgConfigShort, defCongig, usgCongig+" (shorthand)")
+	return &config
+}
+
+func getConfigPath(env, flag string) string {
+	if v, ok := os.LookupEnv(env); ok {
+		return v
+	}
+	return flag
+}
+
+func selectString(env, def, flagString string) (string, bool) {
+	if v, ok := os.LookupEnv(env); ok {
+		return v, true
+	}
+	if flagString != def {
+		return flagString, true
+	}
+	return "", false
+}
+
+func selectDuration(env string, def, envDuration, flgDuration time.Duration) (time.Duration, bool) {
+	if _, ok := os.LookupEnv(env); ok {
+		return envDuration, true
+	}
+	if flgDuration != def {
+		return flgDuration, true
+	}
+	return time.Duration(0), false
+}
+
+func selectInt(env string, def, envInt, flgInt int) (int, bool) {
+	if _, ok := os.LookupEnv(env); ok {
+		return envInt, true
+	}
+	if flgInt != def {
+		return flgInt, true
+	}
+	return 0, false
+}
+
+func selectBool(env string, def, envInt, flgBool bool) (bool, bool) {
+	if _, ok := os.LookupEnv(env); ok {
+		return envInt, true
+	}
+	if flgBool != def {
+		return flgBool, true
+	}
+	return false, false
 }
