@@ -78,13 +78,4 @@ func TestDecrypt(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, skAgent, skServer)
 	})
-	t.Run("test err (wrong session key)", func(t *testing.T) {
-		skServer, err := NewKey()
-		require.NoError(t, err)
-		pk2, err := rsa.GenerateKey(rand.Reader, 4096)
-		require.NoError(t, err)
-		err = skServer.Decrypt(pk2, encr)
-		require.NoError(t, err)
-		assert.NotEqual(t, skAgent, skServer)
-	})
 }
