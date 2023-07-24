@@ -55,6 +55,7 @@ type MemStorage struct {
 	logger          *log.Logger
 	needToSyncWrite bool
 	mu              sync.RWMutex
+	init            bool
 }
 
 // NewMemStorage конструктор создания MemStorage.
@@ -67,10 +68,10 @@ func NewMemStorage(restore, needToSyncWrite bool, filename string) *MemStorage {
 	s, err := NewSaver(filename)
 	if err != nil {
 		lgr.Printf("Can't write metrics to %s\n", filename)
-		return &MemStorage{Float: mFloat, Int: mInt, saver: s, logger: lgr, needToSyncWrite: false}
+		return &MemStorage{Float: mFloat, Int: mInt, saver: s, logger: lgr, needToSyncWrite: false, init: true}
 	}
 	if filename == "" {
-		return &MemStorage{Float: mFloat, Int: mInt, saver: s, logger: lgr, needToSyncWrite: false}
+		return &MemStorage{Float: mFloat, Int: mInt, saver: s, logger: lgr, needToSyncWrite: false, init: true}
 	}
 	if restore {
 		l, err := NewLoader(filename)
@@ -94,7 +95,7 @@ func NewMemStorage(restore, needToSyncWrite bool, filename string) *MemStorage {
 			}
 		}
 	}
-	return &MemStorage{Float: mFloat, Int: mInt, saver: s, logger: lgr, needToSyncWrite: needToSyncWrite}
+	return &MemStorage{Float: mFloat, Int: mInt, saver: s, logger: lgr, needToSyncWrite: needToSyncWrite, init: true}
 }
 
 // SaveAllIntoFile сохранение всех метрик в файл.
@@ -123,7 +124,18 @@ func (s *MemStorage) SaveAllIntoFile() (int, error) {
 	return count, nil
 }
 
-func (s *MemStorage) Close() error {
+func (s *MemStorage) Close(ctx context.Context) error {
+	if !s.init {
+		return nil
+	}
+	s.init = false
+	count, err := s.SaveAllIntoFile()
+	if err != nil {
+		return err
+	}
+	s.logger.Printf("saved %d metrics\n", count)
+
+	s.ShowMetrics(ctx)
 	return s.saver.Close()
 }
 

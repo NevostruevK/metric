@@ -7,11 +7,14 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/NevostruevK/metric/internal/client"
 	"github.com/NevostruevK/metric/internal/util/commands"
 	"github.com/NevostruevK/metric/internal/util/logger"
 )
+
+const shotDownTimeOut = time.Second * 3
 
 var (
 	buildVersion = "N/A"
@@ -36,15 +39,23 @@ func main() {
 	cfg := commands.GetAgentConfig()
 	fmt.Println(cfg)
 
-	//	cmd, err := commands.GetAgentCommands()
 	logger.LogCommands(cfg, false)
 
-	go client.StartAgent(ctx, cfg)
+	complete := make(chan struct{})
+	go client.StartAgent(ctx, cfg, complete)
+
+	<-gracefulShutdown
+	lgr.Println("Get Agent Signal!")
+	cancel()
+	ctx, cancel = context.WithTimeout(context.Background(), shotDownTimeOut)
+	defer cancel()
 
 	select {
-	case <-gracefulShutdown:
-		lgr.Println("Get Agent Signal!")
-		cancel()
 	case <-ctx.Done():
+		lgr.Printf("shotdown with err %v", ctx.Err())
+		return
+	case <-complete:
+		lgr.Println("graceful shutdown")
+		return
 	}
 }

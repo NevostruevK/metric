@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -17,6 +16,8 @@ import (
 	"github.com/NevostruevK/metric/internal/util/logger"
 )
 
+const shotDownTimeOut = time.Second * 3
+
 var (
 	buildVersion = "N/A"
 	buildData    = "N/A"
@@ -26,14 +27,11 @@ var (
 func main() {
 	gracefulShutdown := make(chan os.Signal, 1)
 	signal.Notify(gracefulShutdown, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+
+	complete := make(chan struct{})
 	ctx := context.Background()
+
 	lgr := logger.NewLogger("main : ", log.LstdFlags|log.Lshortfile)
-	/*
-		cmd1 := commands.NewServerOptions()
-		cmd1.ReadConfig("config.json")
-		fmt.Println(cmd1)
-	*/
-	fmt.Println("---------------")
 	lgr.Println("Build version : " + buildVersion)
 	lgr.Println("Build data    : " + buildData)
 	lgr.Println("Build commit  : " + buildCommit)
@@ -41,7 +39,6 @@ func main() {
 	lgr.Println(`Get server's flags`)
 
 	cfg := commands.GetServerConfig()
-	//	cmd, err := commands.GetServerCommands()
 	logger.LogCommands(cfg, true)
 
 	storeInterval := time.NewTicker(cfg.StoreInterval.Duration)
@@ -52,39 +49,36 @@ func main() {
 	lgr.Println(`Init database`)
 	db, err := db.NewDB(ctx, cfg.DataBaseDSN)
 	if err != nil || cfg.DataBaseDSN == "" {
-		lgr.Println("Can't compleate DB connection: ", err)
-		if err != nil {
-			lgr.Printf("ERROR : NewDB returned the error %v\n", err)
-		}
 		lgr.Println(`Init Memory storage`)
 		st = storage.NewMemStorage(cfg.Restore, cfg.StoreInterval.Duration == 0, cfg.StoreFile)
 		defer func() {
-			count, errSave := st.SaveAllIntoFile()
-			if errSave != nil {
-				lgr.Printf("ERROR : st.SaveAllIntoFile returned the error %v\n", errSave)
-			}
-			lgr.Printf("saved %d metrics\n", count)
-			st.ShowMetrics(ctx)
-			if err = st.Close(); err != nil {
+			if err = st.Close(ctx); err != nil {
 				lgr.Printf("ERROR : st.Close returned the error %v\n", err)
 			}
 		}()
 		s = server.NewServer(st, cfg.Address, cfg.HashKey, cfg.CryptoKey)
 	} else {
 		defer func() {
-			if err = db.ShowMetrics(ctx); err != nil {
-				lgr.Printf("ERROR : db.ShowMetrics returned the error %v\n", err)
-			}
-			if err = db.Close(); err != nil {
+			if err = db.Close(ctx); err != nil {
 				lgr.Printf("ERROR : db.Close returned the error %v\n", err)
 			}
 		}()
 		storeInterval.Stop()
 		s = server.NewServer(db, cfg.Address, cfg.HashKey, cfg.CryptoKey)
 	}
+
 	lgr.Printf("Start server")
 	go func() {
-		go lgr.Println(s.ListenAndServe())
+		lgr.Println(s.ListenAndServe())
+		if db.Init {
+			err = db.Close(ctx)
+		} else {
+			err = st.Close(ctx)
+		}
+		if err != nil {
+			lgr.Printf("ERROR : storage.Close returned the error %v\n", err)
+		}
+		complete <- struct{}{}
 	}()
 	for {
 		select {
@@ -97,12 +91,21 @@ func main() {
 		case <-gracefulShutdown:
 			lgr.Println("Server Get Signal!")
 			storeInterval.Stop()
-			if err = s.Shutdown(ctx); err != nil {
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), shotDownTimeOut)
+			defer cancel()
+			if err = s.Shutdown(shutdownCtx); err != nil {
 				lgr.Printf("ERROR : Server Shutdown error %v", err)
 			} else {
 				lgr.Printf("Server Shutdown ")
 			}
-			return
+			select {
+			case <-shutdownCtx.Done():
+				lgr.Printf("shotdown with err %v", shutdownCtx.Err())
+				return
+			case <-complete:
+				lgr.Println("graceful shutdown")
+				return
+			}
 		}
 	}
 }

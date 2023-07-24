@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -22,6 +23,8 @@ import (
 )
 
 const metricsLimit = 1024
+
+const timeOutForSending = time.Second
 
 type worker struct {
 	client  *http.Client
@@ -47,7 +50,8 @@ func NewWorker(address, hashKey string, id int, crypt *crypt.Crypt) *worker {
 	}
 }
 
-func (w *worker) start(ctx context.Context, inCh, reuseCh chan []metrics.Metrics, free *int32) {
+func (w *worker) start(ctx context.Context, inCh, reuseCh chan []metrics.Metrics, free *int32, wg *sync.WaitGroup) {
+	defer wg.Done()
 	w.logger.Println("Start")
 	atomic.AddInt32(free, 1)
 	for {
@@ -55,6 +59,8 @@ func (w *worker) start(ctx context.Context, inCh, reuseCh chan []metrics.Metrics
 		case newM := <-inCh:
 			w.logger.Printf("Get %d metrics", len(newM))
 			atomic.AddInt32(free, -1)
+			ctx, cancel := context.WithTimeout(context.Background(), timeOutForSending)
+			defer cancel()
 			send, err := w.Send(ctx, newM)
 			if err != nil {
 				w.logger.Printf("Error : %v", err)
@@ -135,7 +141,7 @@ func (w *worker) Send(ctx context.Context, sM []metrics.Metrics) (int, error) {
 	return len(sM), nil
 }
 
-func StartAgent(ctx context.Context, cmd *commands.Config) {
+func StartAgent(ctx context.Context, cmd *commands.Config, complete chan struct{}) {
 	lgr := logger.NewLogger("agent : ", log.LstdFlags|log.Lshortfile)
 	lgr.Println("Start")
 	chIn := make(chan []metrics.Metrics)
@@ -145,9 +151,15 @@ func StartAgent(ctx context.Context, cmd *commands.Config) {
 	if err != nil {
 		lgr.Printf("failed to create crypt entity %v", err)
 	}
+
+	wctx, wcancel := context.WithCancel(context.Background())
+	defer wcancel()
+	wg := &sync.WaitGroup{}
+
 	for i := 0; i < cmd.RateLimit; i++ {
 		w.workers = append(w.workers, *NewWorker(cmd.Address, cmd.HashKey, i, cr))
-		go w.workers[i].start(ctx, chOut, chIn, &w.free)
+		wg.Add(1)
+		go w.workers[i].start(wctx, chOut, chIn, &w.free, wg)
 	}
 	go CollectMetrics(ctx, time.Duration(cmd.PollInterval.Duration) /*cmd.PollInterval*/, chIn)
 	reportTicker := time.NewTicker(cmd.ReportInterval.Duration)
@@ -173,7 +185,26 @@ func StartAgent(ctx context.Context, cmd *commands.Config) {
 			lgr.Println("Gave Job")
 			sM = nil
 		case <-ctx.Done():
-			lgr.Println("Finished")
+			lgr.Println("receive signal for finishing")
+
+			free := int(atomic.LoadInt32(&w.free))
+			lgr.Printf("I have %d workers for %d metrics", free, len(sM))
+			for i := free; i > 0; i-- {
+				size := len(sM) / i
+				if size == 0 {
+					continue
+				}
+				chOut <- sM[:size]
+				sM = sM[size:]
+			}
+			lgr.Println("Gave Job")
+			sM = nil
+
+			wcancel()
+			lgr.Println("wait for finishing workers")
+			wg.Wait()
+			lgr.Println("workers finished")
+			complete <- struct{}{}
 			return
 		}
 	}

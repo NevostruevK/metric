@@ -30,13 +30,17 @@ type DB struct {
 	db            *sql.DB
 	stmtGetMetric *sql.Stmt
 	logger        *log.Logger
-	init          bool
+	Init          bool
 }
 
 // NewDB контсруктор DB.
 // connStr строка подключения к базе данных.
 func NewDB(ctx context.Context, connStr string) (*DB, error) {
-	db := &DB{db: nil, logger: logger.NewLogger("postgres : ", log.LstdFlags|log.Lshortfile), init: false}
+	db := &DB{
+		db:     nil,
+		logger: logger.NewLogger("postgres : ", log.LstdFlags|log.Lshortfile),
+		Init:   false,
+	}
 	if connStr == "" {
 		db.logger.Println("DATABASE_DSN is empty, database wasn't initialized")
 		return db, fmt.Errorf(" Empty address data base")
@@ -56,7 +60,7 @@ func NewDB(ctx context.Context, connStr string) (*DB, error) {
 	}
 	db.db = conn
 	db.stmtGetMetric = stmtGetMetric
-	db.init = true
+	db.Init = true
 	return db, nil
 }
 
@@ -282,11 +286,17 @@ func (db *DB) GetMetric(ctx context.Context, reqType, name string) (storage.Repo
 }
 
 // Close прекращение работы с базой.
-func (db *DB) Close() error {
+func (db *DB) Close(ctx context.Context) error {
 
-	if !db.init {
-		return fmt.Errorf(" Can't close DB : DataBase wasn't initiated")
+	if !db.Init {
+		return nil
 	}
+	db.Init = false
+
+	if err := db.ShowMetrics(ctx); err != nil {
+		return err
+	}
+
 	if err := db.stmtGetMetric.Close(); err != nil {
 		return err
 	}
@@ -298,7 +308,7 @@ func (db *DB) Close() error {
 
 // Ping проверка коннекта к базе.
 func (db DB) Ping() error {
-	if !db.init {
+	if !db.Init {
 		return fmt.Errorf(" Can't ping DB : DataBase wasn't initiated")
 	}
 	if err := db.db.Ping(); err != nil {
