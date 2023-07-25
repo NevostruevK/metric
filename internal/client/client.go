@@ -166,40 +166,31 @@ func StartAgent(ctx context.Context, cmd *commands.Config, complete chan struct{
 	defer reportTicker.Stop()
 	sM := make([]metrics.Metrics, 0, metricsLimit)
 
+	giveJob := func() {
+		free := int(atomic.LoadInt32(&w.free))
+		lgr.Printf("I have %d workers for %d metrics", free, len(sM))
+		for i := free; i > 0; i-- {
+			size := len(sM) / i
+			if size == 0 {
+				continue
+			}
+			chOut <- sM[:size]
+			sM = sM[size:]
+		}
+		lgr.Println("Gave Job")
+		sM = nil
+	}
+
 	for {
 		select {
 		case newM := <-chIn:
 			sM = append(sM, newM...)
 			lgr.Printf("Recieve: %d metrics", len(sM))
 		case <-reportTicker.C:
-			free := int(atomic.LoadInt32(&w.free))
-			lgr.Printf("I have %d workers for %d metrics", free, len(sM))
-			for i := free; i > 0; i-- {
-				size := len(sM) / i
-				if size == 0 {
-					continue
-				}
-				chOut <- sM[:size]
-				sM = sM[size:]
-			}
-			lgr.Println("Gave Job")
-			sM = nil
+			giveJob()
 		case <-ctx.Done():
 			lgr.Println("receive signal for finishing")
-
-			free := int(atomic.LoadInt32(&w.free))
-			lgr.Printf("I have %d workers for %d metrics", free, len(sM))
-			for i := free; i > 0; i-- {
-				size := len(sM) / i
-				if size == 0 {
-					continue
-				}
-				chOut <- sM[:size]
-				sM = sM[size:]
-			}
-			lgr.Println("Gave Job")
-			sM = nil
-
+			giveJob()
 			wcancel()
 			lgr.Println("wait for finishing workers")
 			wg.Wait()
