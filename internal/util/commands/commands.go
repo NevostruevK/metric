@@ -23,6 +23,7 @@ const (
 	defHashKey        = ""
 	defDataBaseDSN    = ""
 	defCryptoKey      = ""
+	defTrustedSubnet  = ""
 	defCongig         = ""
 	defRateLimit      = 1
 	defRestore        = true
@@ -37,6 +38,7 @@ const (
 	usgHashKey        = "key for signing metrics"
 	usgDataBaseDSN    = "dsn"
 	usgCryptoKey      = "path to private/public key"
+	usgTrustedSubnet  = "sub net in CIDR format"
 	usgCongig         = "path to config file"
 	usgRateLimit      = "requests count"
 	usgRestore        = "restore value"
@@ -51,6 +53,7 @@ const (
 	flgHashKey        = "k"
 	flgDataBaseDSN    = "d"
 	flgCryptoKey      = "crypto-key"
+	flgTrustedSubnet  = "t"
 	flgConfig         = "config"
 	flgConfigShort    = "c"
 	flgRateLimit      = "l"
@@ -66,9 +69,9 @@ type Environment struct {
 	HashKey        string        `env:"KEY" envDefault:""`
 	DataBaseDSN    string        `env:"DATABASE_DSN" envDefault:""`
 	CryptoKey      string        `env:"CRYPTO_KEY" envDefault:""`
-	//	Config         string        `env:"CONFIG" envDefault:""`
-	RateLimit int  `env:"RATE_LIMIT" envDefault:"1"`
-	Restore   bool `env:"RESTORE" envDefault:"true"`
+	TrustedSubnet  string        `env:"TRUSTED_SUBNET" envDefault:""`
+	RateLimit      int           `env:"RATE_LIMIT" envDefault:"1"`
+	Restore        bool          `env:"RESTORE" envDefault:"true"`
 }
 
 func GetAgentConfig() *Config {
@@ -132,6 +135,7 @@ func GetServerConfig() *Config {
 		hashKey       = flag.String(flgHashKey, defHashKey, usgHashKey)
 		dataBaseDSN   = flag.String(flgDataBaseDSN, defDataBaseDSN, usgDataBaseDSN)
 		cryptoKey     = flag.String(flgCryptoKey, defCryptoKey, usgCryptoKey)
+		trustedSubnet = flag.String(flgTrustedSubnet, defTrustedSubnet, usgTrustedSubnet)
 		restore       = flag.Bool(flgRestore, defRestore, usgRestore)
 		config        = getFlagConfigValue()
 	)
@@ -167,6 +171,10 @@ func GetServerConfig() *Config {
 
 	if value, ok := selectString("CRYPTO_KEY", "", *cryptoKey); ok {
 		c.setOption(withCryptoKey(value))
+	}
+
+	if value, ok := selectString("TRUSTED_SUBNET", "", *trustedSubnet); ok {
+		c.setOption(withTrustedSubnet(value))
 	}
 
 	if value, ok := selectBool("RESTORE", defRestore, e.Restore, *restore); ok {

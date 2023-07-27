@@ -19,6 +19,7 @@ func TestConfig_setOption(t *testing.T) {
 			HashKey:        "test_hash_key",
 			DataBaseDSN:    "test_dsn",
 			CryptoKey:      "test_crypto_key",
+			TrustedSubnet:  "192.168.0.15/24",
 			RateLimit:      1234,
 			Restore:        false,
 		}
@@ -31,6 +32,7 @@ func TestConfig_setOption(t *testing.T) {
 		c.setOption(withHashKey("test_hash_key"))
 		c.setOption(withDataBaseDSN("test_dsn"))
 		c.setOption(withCryptoKey("test_crypto_key"))
+		c.setOption(withTrustedSubnet("192.168.0.15/24"))
 		c.setOption(withRateLimit(1234))
 		c.setOption(withRestore(false))
 		require.Equal(t, exp, c)

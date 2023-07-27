@@ -17,24 +17,11 @@ type Config struct {
 	HashKey        string            `json:"hash_key"`
 	DataBaseDSN    string            `json:"database_dsn"`
 	CryptoKey      string            `json:"crypto_key"`
+	TrustedSubnet  string            `json:"trusted_subnet"`
 	RateLimit      int               `json:"rate_limit"`
 	Restore        bool              `json:"restore"`
 }
 
-/*
-	type Config struct {
-		ReportInterval duration.Duration `json:"report_interval" env:"REPORT_INTERVAL"`
-		PollInterval   duration.Duration `json:"poll_interval"   env:"POLL_INTERVAL"`
-		StoreInterval  duration.Duration `json:"store_interval"  env:"STORE_INTERVAL"`
-		Address        string        	 `json:"address"         env:"ADDRESS"`
-		StoreFile      string        	 `json:"store_file"      env:"STORE_FILE"`
-		HashKey        string        	 `json:"hash_key"	     env:"KEY"`
-		DataBaseDSN    string        	 `json:"database_dsn"    env:"DATABASE_DSN"`
-		CryptoKey      string        	 `json:"crypto_key"      env:"CRYPTO_KEY"`
-		RateLimit      int           	 `json:"rate_limit"      env:"RATE_LIMIT"`
-		Restore        bool          	 `json:"restore"         env:"RESTORE"`
-	}
-*/
 func NewServerConfig() *Config {
 	return &Config{
 		Address:       defAddress,
@@ -121,6 +108,12 @@ func withDataBaseDSN(dataBaseDSN string) func(*Config) {
 func withCryptoKey(cryptoKey string) func(*Config) {
 	return func(o *Config) {
 		o.CryptoKey = cryptoKey
+	}
+}
+
+func withTrustedSubnet(trustedSubnet string) func(*Config) {
+	return func(o *Config) {
+		o.TrustedSubnet = trustedSubnet
 	}
 }
 

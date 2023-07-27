@@ -56,7 +56,7 @@ func main() {
 				lgr.Printf("ERROR : st.Close returned the error %v\n", err)
 			}
 		}()
-		s = server.NewServer(st, cfg.Address, cfg.HashKey, cfg.CryptoKey)
+		s = server.NewServer(st, cfg)
 	} else {
 		defer func() {
 			if err = db.Close(ctx); err != nil {
@@ -64,7 +64,7 @@ func main() {
 			}
 		}()
 		storeInterval.Stop()
-		s = server.NewServer(db, cfg.Address, cfg.HashKey, cfg.CryptoKey)
+		s = server.NewServer(db, cfg)
 	}
 
 	lgr.Printf("Start server")

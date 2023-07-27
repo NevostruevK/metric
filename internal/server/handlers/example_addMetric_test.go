@@ -18,10 +18,10 @@ func ExampleAddMetricHandler() {
 	ts := httptest.NewServer(r)
 	defer ts.Close()
 
-	code, body := Request(ts, "POST", "/update/gauge/exampleGauge/1.2345", nil)
+	code, body := Request(ts, "POST", "/update/gauge/exampleGauge/1.2345", nil, nil)
 	fmt.Printf("%d : %s", code, string(body))
 
-	code, body = Request(ts, "POST", "/update/counter/exampleCounter/12345", nil)
+	code, body = Request(ts, "POST", "/update/counter/exampleCounter/12345", nil, nil)
 	fmt.Printf("%d : %s", code, string(body))
 
 	// Output:
