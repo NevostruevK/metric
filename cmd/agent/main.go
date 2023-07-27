@@ -1,42 +1,60 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"github.com/NevostruevK/metric/internal/client"
-	"github.com/NevostruevK/metric/internal/util/metrics"
+	"github.com/NevostruevK/metric/internal/util/commands"
+	"github.com/NevostruevK/metric/internal/util/logger"
 )
 
-const pollInterval = 2
-const reportInterval = 10
+const shutDownTimeOut = time.Second * 3
+
+var (
+	buildVersion = "N/A"
+	buildData    = "N/A"
+	buildCommit  = "N/A"
+)
 
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+
 	gracefulShutdown := make(chan os.Signal, 1)
 	signal.Notify(gracefulShutdown, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
-	pollTicker := time.NewTicker(pollInterval * time.Second)
-	reportTicker := time.NewTicker(reportInterval * time.Second)
-	inMetrics := make([]metrics.Metric, 0, metrics.MetricsCount*(reportInterval/pollInterval+1))
-//	outMetrics := make([]metrics.Metric, metrics.MetricsCount*(reportInterval/pollInterval+1))
-//	var size int
-	for {
-		select {
-		case <-pollTicker.C:
-			inMetrics = append(inMetrics, metrics.Get()...)
-		case <-reportTicker.C:
-//			size = copy(outMetrics, inMetrics)
-			client.SendMetrics(inMetrics)
-			inMetrics = nil
-//			client.SendMetrics(outMetrics, size)
-		case <-gracefulShutdown:
-			pollTicker.Stop()
-			reportTicker.Stop()
-			fmt.Println("Get Agent Signal!")
-			return
-		}
+	lgr := logger.NewLogger("main : ", log.LstdFlags|log.Lshortfile)
+
+	lgr.Println("Build version : " + buildVersion)
+	lgr.Println("Build data    : " + buildData)
+	lgr.Println("Build commit  : " + buildCommit)
+
+	lgr.Println(`Get server's flags`)
+
+	cfg := commands.GetAgentConfig()
+	fmt.Println(cfg)
+
+	logger.LogCommands(cfg, false)
+
+	complete := make(chan struct{})
+	go client.StartAgent(ctx, cfg, complete)
+
+	<-gracefulShutdown
+	lgr.Println("Get Agent Signal!")
+	cancel()
+	ctx, cancel = context.WithTimeout(context.Background(), shutDownTimeOut)
+	defer cancel()
+	shutDownTimer := time.NewTimer(shutDownTimeOut)
+
+	select {
+	case <-shutDownTimer.C:
+		lgr.Printf("shotdown with err %v", ctx.Err())
+	case <-complete:
+		lgr.Println("graceful shutdown")
 	}
 }
