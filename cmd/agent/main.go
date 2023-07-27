@@ -14,7 +14,7 @@ import (
 	"github.com/NevostruevK/metric/internal/util/logger"
 )
 
-const shotDownTimeOut = time.Second * 3
+const shutDownTimeOut = time.Second * 3
 
 var (
 	buildVersion = "N/A"
@@ -47,15 +47,14 @@ func main() {
 	<-gracefulShutdown
 	lgr.Println("Get Agent Signal!")
 	cancel()
-	ctx, cancel = context.WithTimeout(context.Background(), shotDownTimeOut)
+	ctx, cancel = context.WithTimeout(context.Background(), shutDownTimeOut)
 	defer cancel()
+	shutDownTimer := time.NewTimer(shutDownTimeOut)
 
 	select {
-	case <-ctx.Done():
+	case <-shutDownTimer.C:
 		lgr.Printf("shotdown with err %v", ctx.Err())
-		return
 	case <-complete:
 		lgr.Println("graceful shutdown")
-		return
 	}
 }

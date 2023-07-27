@@ -17,9 +17,7 @@ func DecryptHanlder(next http.Handler, dcr *crypt.Decrypt) http.Handler {
 		}
 
 		b, err := io.ReadAll(r.Body)
-		defer func() {
-			err = r.Body.Close()
-		}()
+		defer r.Body.Close()
 		if err != nil {
 			msg := fmt.Sprintf("ERROR : failed io.ReadAll with error  %v", err)
 			Logger.Println(msg)

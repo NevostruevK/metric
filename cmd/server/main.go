@@ -101,11 +101,10 @@ func main() {
 			select {
 			case <-shutdownCtx.Done():
 				lgr.Printf("shotdown with err %v", shutdownCtx.Err())
-				return
 			case <-complete:
 				lgr.Println("graceful shutdown")
-				return
 			}
+			return
 		}
 	}
 }

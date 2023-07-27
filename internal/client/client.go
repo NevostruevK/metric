@@ -24,7 +24,7 @@ import (
 
 const metricsLimit = 1024
 
-const timeOutForSending = time.Second
+//const timeOutForSending = time.Second
 
 type worker struct {
 	client  *http.Client
@@ -59,9 +59,10 @@ func (w *worker) start(ctx context.Context, inCh, reuseCh chan []metrics.Metrics
 		case newM := <-inCh:
 			w.logger.Printf("Get %d metrics", len(newM))
 			atomic.AddInt32(free, -1)
-			ctx, cancel := context.WithTimeout(context.Background(), timeOutForSending)
-			defer cancel()
-			send, err := w.Send(ctx, newM)
+			//			ctx, cancel := context.WithTimeout(context.Background(), timeOutForSending)
+			//			defer cancel()
+			//			send, err := w.Send(ctx, newM)
+			send, err := w.Send(context.Background(), newM)
 			if err != nil {
 				w.logger.Printf("Error : %v", err)
 			}
@@ -119,14 +120,13 @@ func (w *worker) Send(ctx context.Context, sM []metrics.Metrics) (int, error) {
 			w.logger.Printf("ERROR : SendMetric(JSON):c.client.Do(request) error %v\n", err)
 			return i, err
 		}
-		defer func() {
-			err = response.Body.Close()
-		}()
+		//		defer response.Body.Close()
 		body, err := io.ReadAll(response.Body)
 		if err != nil {
 			w.logger.Printf("ERROR : SendMetric(JSON):io.ReadAll error %v\n", err)
 			return i, err
 		}
+		response.Body.Close()
 		if response.StatusCode != http.StatusOK {
 			if strings.Contains(response.Header.Get("Content-Encoding"), "gzip") {
 				body, err = fgzip.Decompress(body)
@@ -161,7 +161,7 @@ func StartAgent(ctx context.Context, cmd *commands.Config, complete chan struct{
 		wg.Add(1)
 		go w.workers[i].start(wctx, chOut, chIn, &w.free, wg)
 	}
-	go CollectMetrics(ctx, time.Duration(cmd.PollInterval.Duration) /*cmd.PollInterval*/, chIn)
+	go CollectMetrics(ctx, time.Duration(cmd.PollInterval.Duration), chIn)
 	reportTicker := time.NewTicker(cmd.ReportInterval.Duration)
 	defer reportTicker.Stop()
 	sM := make([]metrics.Metrics, 0, metricsLimit)
