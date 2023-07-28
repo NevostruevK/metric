@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package mproto;
+
+option go_package = "github.com/NevostruevK/metric/proto/mproto";
+
+
+enum   MetricType {
+  GAUGE   = 0;
+  COUNTER = 1;
+}
+
+message Metric {
+  string     name  = 1;  //  Имя метрики
+  MetricType type  = 2;  // Параметр принимающий значение gauge или counter
+  int64      delta = 3;  // Значение метрики в случае передачи counter
+  double     value = 4;  // Значение метрики в случае передачи gauge
+  string     hash  = 5;  // Значение хеш-функции
+}
+
+message GetMetricRequest {
+  string     name = 1;
+  MetricType type = 2;
+}
+
+message GetMetricResponse {
+  Metric metric = 1;  
+}
+
+message AddMetricRequest {
+  Metric metric = 1;
+}
+
+message AddMetricResponse {
+  Metric metric = 1;  
+}
+
+message GetAllMetricsRequest {
+}
+
+message GetAllMetricsResponse {
+  repeated Metric metrics = 1;
+}
+
+message AddBatchMetricsRequest {
+  repeated Metric metrics = 1;
+}
+
+message AddBatchMetricsResponse {
+}
+
+service Metrics {
+  rpc GetMetric(GetMetricRequest) returns (GetMetricResponse);
+  rpc AddMetric(AddMetricRequest) returns (AddMetricResponse);
+  rpc GetAllMetrics(GetAllMetricsRequest) returns (GetAllMetricsResponse);
+  rpc AddBatchMetrics(AddBatchMetricsRequest) returns (AddBatchMetricsResponse);
+}
