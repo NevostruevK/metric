@@ -24,17 +24,17 @@ func TestConfig_setOption(t *testing.T) {
 			Restore:        false,
 		}
 		c := Config{}
-		c.setOption(withReportInterval(duration.NewDuration(time.Second)))
-		c.setOption(withPollInterval(duration.NewDuration(time.Minute)))
-		c.setOption(withStoreInterval(duration.NewDuration(time.Hour)))
-		c.setOption(withAddress("test_address"))
-		c.setOption(withStoreFile("test_store_file"))
-		c.setOption(withHashKey("test_hash_key"))
-		c.setOption(withDataBaseDSN("test_dsn"))
-		c.setOption(withCryptoKey("test_crypto_key"))
-		c.setOption(withTrustedSubnet("192.168.0.15/24"))
-		c.setOption(withRateLimit(1234))
-		c.setOption(withRestore(false))
+		c.SetOption(WithReportInterval(duration.NewDuration(time.Second)))
+		c.SetOption(WithPollInterval(duration.NewDuration(time.Minute)))
+		c.SetOption(WithStoreInterval(duration.NewDuration(time.Hour)))
+		c.SetOption(WithAddress("test_address"))
+		c.SetOption(WithStoreFile("test_store_file"))
+		c.SetOption(WithHashKey("test_hash_key"))
+		c.SetOption(WithDataBaseDSN("test_dsn"))
+		c.SetOption(WithCryptoKey("test_crypto_key"))
+		c.SetOption(WithTrustedSubnet("192.168.0.15/24"))
+		c.SetOption(WithRateLimit(1234))
+		c.SetOption(WithRestore(false))
 		require.Equal(t, exp, c)
 	})
 }

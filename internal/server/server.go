@@ -16,16 +16,14 @@ import (
 
 const initialBatchMetricCapacity = 200
 
-// Server HTTP сервер для работы с метриками.
-type Server *http.Server
-
 // NewServer создание сервера на основе роутера github.com/go-chi/chi/v5.
-func NewServer(s storage.Repository, cfg *commands.Config) Server {
+func NewServer(s storage.Repository, cfg *commands.Config) (*http.Server, error) {
 	handlers.Logger = logger.NewLogger(`server: `, log.LstdFlags)
 
 	dcr, err := crypt.NewDecrypt(cfg.CryptoKey)
 	if err != nil {
 		handlers.Logger.Printf("failed to create decrypt entity %v", err)
+		return nil, err
 	}
 
 	r := chi.NewRouter()
@@ -54,5 +52,5 @@ func NewServer(s storage.Repository, cfg *commands.Config) Server {
 	return &http.Server{
 		Addr:    cfg.Address,
 		Handler: handler,
-	}
+	}, nil
 }

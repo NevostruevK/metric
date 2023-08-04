@@ -3,6 +3,8 @@ package metrics
 import (
 	"errors"
 	"fmt"
+
+	pb "github.com/NevostruevK/metric/proto"
 )
 
 // Metrics структура метрики для конвертации в JSON.
@@ -22,6 +24,30 @@ func NewJSONGaugeMetric(id string, f float64) Metrics {
 // NewJSONCounterMetric конструктор метрики id со значение i типа "counter".
 func NewJSONCounterMetric(id string, i int64) Metrics {
 	return Metrics{ID: id, MType: Counter, Delta: &i}
+}
+
+// ToProto конвертит метрику для gRPC.
+func (m *Metrics) ToProto() *pb.Metric {
+	var pbMetric pb.Metric
+	if m.MType == Gauge {
+		pbMetric.Type = pb.MetricType_GAUGE
+		pbMetric.Value = m.GaugeValue()
+	} else {
+		pbMetric.Type = pb.MetricType_COUNTER
+		pbMetric.Delta = m.CounterValue()
+	}
+	pbMetric.Name = m.ID
+	pbMetric.Hash = m.Hash
+	return &pbMetric
+}
+
+// ToProto конвертирует массив метрик для gRPC.
+func ToProto(sm []Metrics) []*pb.Metric {
+	sp := make([]*pb.Metric, len(sm))
+	for i, m := range sm {
+		sp[i] = m.ToProto()
+	}
+	return sp
 }
 
 // NewGaugeMetric метод создания метрики id со значение f типа "gauge".

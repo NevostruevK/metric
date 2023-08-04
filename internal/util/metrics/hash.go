@@ -36,6 +36,9 @@ func (m Metrics) CheckHash(key string) (bool, error) {
 
 // SetHash запись хеша метрики.
 func (m *Metrics) SetHash(key string) error {
+	if key == "" {
+		return nil
+	}
 	hash, err := m.CountHash(key)
 	if err != nil {
 		return fmt.Errorf(" can't set hash for metric %v , error %w", m, err)

@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	privateKeyFileName = "private.key"
-	publicKeyFileName  = "public.key"
+	privateKeyFileName  = "private.key"
+	publicKeyFileName   = "public.key"
+	certificateFileName = "server.crt"
 )
 
 func main() {
@@ -27,6 +28,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	_, err = CreateCertificate(certificateFileName, privateKey)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func createPrivateKey(fname string) (*rsa.PrivateKey, error) {
@@ -35,9 +41,8 @@ func createPrivateKey(fname string) (*rsa.PrivateKey, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s failed with an error %w", op, err)
 	}
-	defer func() {
-		err = f.Close()
-	}()
+	defer f.Close()
+
 	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
 		return nil, fmt.Errorf("%s failed with an error %w", op, err)
@@ -58,9 +63,8 @@ func createPublicKey(fname string, privateKey *rsa.PrivateKey) (*rsa.PublicKey, 
 	if err != nil {
 		return nil, fmt.Errorf("%s failed with an error %w", op, err)
 	}
-	defer func() {
-		err = f.Close()
-	}()
+	defer f.Close()
+
 	err = pem.Encode(f, &pem.Block{
 		Type:  crypt.PublicKeyTitle,
 		Bytes: x509.MarshalPKCS1PublicKey(&privateKey.PublicKey),
@@ -69,4 +73,29 @@ func createPublicKey(fname string, privateKey *rsa.PrivateKey) (*rsa.PublicKey, 
 		return nil, fmt.Errorf("%s failed with an error %w", op, err)
 	}
 	return &privateKey.PublicKey, nil
+}
+
+func CreateCertificate(fname string, privateKey *rsa.PrivateKey) (*x509.Certificate, error) {
+	op := "createCertificate"
+	f, err := os.Create(fname)
+	if err != nil {
+		return nil, fmt.Errorf("%s failed with an error %w", op, err)
+	}
+	defer f.Close()
+
+	cert := crypt.NewCertificateTemplate()
+
+	certBytes, err := x509.CreateCertificate(rand.Reader, cert, cert, &privateKey.PublicKey, privateKey)
+	if err != nil {
+		return nil, err
+	}
+
+	err = pem.Encode(f, &pem.Block{
+		Type:  crypt.CertificateTitle,
+		Bytes: certBytes,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%s failed with an error %w", op, err)
+	}
+	return cert, nil
 }

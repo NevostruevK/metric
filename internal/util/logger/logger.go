@@ -29,6 +29,8 @@ func LogCommands(cmd *commands.Config, isServer bool) {
 	logger.Printf("ADDRESS = %s\n", cmd.Address)
 	logger.Printf("KEY = %s\n", cmd.HashKey)
 	logger.Printf("CRYPTO_KEY = %s\n", cmd.CryptoKey)
+	logger.Printf("CERTIFICATE = %s\n", cmd.Certificate)
+	logger.Printf("GRPC = %t\n", cmd.GRPC)
 }
 
 func NewLogger(name string, flags int) *log.Logger {

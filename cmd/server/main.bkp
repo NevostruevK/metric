@@ -3,14 +3,14 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"github.com/NevostruevK/metric/internal/db"
-	grpcserver "github.com/NevostruevK/metric/internal/grpc/server"
-	restserver "github.com/NevostruevK/metric/internal/server"
+	"github.com/NevostruevK/metric/internal/server"
 	"github.com/NevostruevK/metric/internal/storage"
 	"github.com/NevostruevK/metric/internal/util/commands"
 	"github.com/NevostruevK/metric/internal/util/logger"
@@ -23,11 +23,6 @@ var (
 	buildData    = "N/A"
 	buildCommit  = "N/A"
 )
-
-type server interface {
-	ListenAndServe() error
-	Shutdown(context.Context) error
-}
 
 func main() {
 	gracefulShutdown := make(chan os.Signal, 1)
@@ -47,12 +42,12 @@ func main() {
 	logger.LogCommands(cfg, true)
 
 	storeInterval := time.NewTicker(cfg.StoreInterval.Duration)
+	st := &storage.MemStorage{}
 
-	var st storage.Repository
-	var s server
+	s := &http.Server{}
 
 	lgr.Println(`Init database`)
-	st, err := db.NewDB(ctx, cfg.DataBaseDSN)
+	db, err := db.NewDB(ctx, cfg.DataBaseDSN)
 	if err != nil || cfg.DataBaseDSN == "" {
 		lgr.Println(`Init Memory storage`)
 		st = storage.NewMemStorage(cfg.Restore, cfg.StoreInterval.Duration == 0, cfg.StoreFile)
@@ -61,28 +56,25 @@ func main() {
 				lgr.Printf("ERROR : st.Close returned the error %v\n", err)
 			}
 		}()
+		s = server.NewServer(st, cfg)
 	} else {
 		defer func() {
-			if err = st.Close(ctx); err != nil {
+			if err = db.Close(ctx); err != nil {
 				lgr.Printf("ERROR : db.Close returned the error %v\n", err)
 			}
 		}()
 		storeInterval.Stop()
-	}
-
-	if cfg.GRPC {
-		s, err = grpcserver.NewServer(st, cfg)
-	} else {
-		s, err = restserver.NewServer(st, cfg)
-	}
-	if err != nil {
-		lgr.Fatalln(err)
+		s = server.NewServer(db, cfg)
 	}
 
 	lgr.Printf("Start server")
 	go func() {
 		lgr.Println(s.ListenAndServe())
-		err = st.Close(ctx)
+		if db.Init {
+			err = db.Close(ctx)
+		} else {
+			err = st.Close(ctx)
+		}
 		if err != nil {
 			lgr.Printf("ERROR : storage.Close returned the error %v\n", err)
 		}

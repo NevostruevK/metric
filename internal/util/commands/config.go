@@ -17,9 +17,11 @@ type Config struct {
 	HashKey        string            `json:"hash_key"`
 	DataBaseDSN    string            `json:"database_dsn"`
 	CryptoKey      string            `json:"crypto_key"`
+	Certificate    string            `json:"certificate"`
 	TrustedSubnet  string            `json:"trusted_subnet"`
 	RateLimit      int               `json:"rate_limit"`
 	Restore        bool              `json:"restore"`
+	GRPC           bool              `json:"grpc"`
 }
 
 func NewServerConfig() *Config {
@@ -28,6 +30,7 @@ func NewServerConfig() *Config {
 		StoreFile:     defStoreFile,
 		StoreInterval: duration.NewDuration(defStoreInterval),
 		Restore:       defRestore,
+		GRPC:          defGRPC,
 	}
 }
 
@@ -37,6 +40,7 @@ func NewAgentConfig() *Config {
 		PollInterval:   duration.NewDuration(defPollInterval),
 		Address:        defAddress,
 		RateLimit:      defRateLimit,
+		GRPC:           defGRPC,
 	}
 }
 
@@ -59,72 +63,84 @@ func (o *Config) ReadConfig(fname string) error {
 	return nil
 }
 
-func (o *Config) setOption(set func(*Config)) {
+func (o *Config) SetOption(set func(*Config)) {
 	set(o)
 }
 
-func withReportInterval(reportInterval duration.Duration) func(*Config) {
+func WithReportInterval(reportInterval duration.Duration) func(*Config) {
 	return func(o *Config) {
 		o.ReportInterval = reportInterval
 	}
 }
 
-func withPollInterval(pollInterval duration.Duration) func(*Config) {
+func WithPollInterval(pollInterval duration.Duration) func(*Config) {
 	return func(o *Config) {
 		o.PollInterval = pollInterval
 	}
 }
 
-func withStoreInterval(stroreInterval duration.Duration) func(*Config) {
+func WithStoreInterval(stroreInterval duration.Duration) func(*Config) {
 	return func(o *Config) {
 		o.StoreInterval = stroreInterval
 	}
 }
 
-func withAddress(address string) func(*Config) {
+func WithAddress(address string) func(*Config) {
 	return func(o *Config) {
 		o.Address = address
 	}
 }
 
-func withStoreFile(storeFile string) func(*Config) {
+func WithStoreFile(storeFile string) func(*Config) {
 	return func(o *Config) {
 		o.StoreFile = storeFile
 	}
 }
 
-func withHashKey(hashKey string) func(*Config) {
+func WithHashKey(hashKey string) func(*Config) {
 	return func(o *Config) {
 		o.HashKey = hashKey
 	}
 }
 
-func withDataBaseDSN(dataBaseDSN string) func(*Config) {
+func WithDataBaseDSN(dataBaseDSN string) func(*Config) {
 	return func(o *Config) {
 		o.DataBaseDSN = dataBaseDSN
 	}
 }
 
-func withCryptoKey(cryptoKey string) func(*Config) {
+func WithCryptoKey(cryptoKey string) func(*Config) {
 	return func(o *Config) {
 		o.CryptoKey = cryptoKey
 	}
 }
 
-func withTrustedSubnet(trustedSubnet string) func(*Config) {
+func WithCertificate(certificate string) func(*Config) {
+	return func(o *Config) {
+		o.Certificate = certificate
+	}
+}
+
+func WithTrustedSubnet(trustedSubnet string) func(*Config) {
 	return func(o *Config) {
 		o.TrustedSubnet = trustedSubnet
 	}
 }
 
-func withRateLimit(rateLimit int) func(*Config) {
+func WithRateLimit(rateLimit int) func(*Config) {
 	return func(o *Config) {
 		o.RateLimit = rateLimit
 	}
 }
 
-func withRestore(restore bool) func(*Config) {
+func WithRestore(restore bool) func(*Config) {
 	return func(o *Config) {
 		o.Restore = restore
+	}
+}
+
+func WithGRPC(grpc bool) func(*Config) {
+	return func(o *Config) {
+		o.GRPC = grpc
 	}
 }
