@@ -49,7 +49,6 @@ func NewServer(s storage.Repository, cfg *commands.Config) (*MetricsServer, erro
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println("Start with TSL")
 		opts = append(opts, grpc.Creds(credentials.NewServerTLSFromCert(&cert)))
 	}
 	server := MetricsServer{

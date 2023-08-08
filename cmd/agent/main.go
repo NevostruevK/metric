@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -34,10 +33,7 @@ func main() {
 	lgr.Println("Build data    : " + buildData)
 	lgr.Println("Build commit  : " + buildCommit)
 
-	lgr.Println(`Get server's flags`)
-
 	cfg := commands.GetAgentConfig()
-	fmt.Println(cfg)
 
 	logger.LogCommands(cfg, false)
 

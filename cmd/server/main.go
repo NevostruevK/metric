@@ -41,8 +41,6 @@ func main() {
 	lgr.Println("Build data    : " + buildData)
 	lgr.Println("Build commit  : " + buildCommit)
 
-	lgr.Println(`Get server's flags`)
-
 	cfg := commands.GetServerConfig()
 	logger.LogCommands(cfg, true)
 
