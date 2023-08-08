@@ -15,6 +15,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	pb "github.com/NevostruevK/metric/proto"
+
+	grpcclient "github.com/NevostruevK/metric/internal/grpc/client"
 	"github.com/NevostruevK/metric/internal/util/commands"
 	"github.com/NevostruevK/metric/internal/util/crypt"
 	"github.com/NevostruevK/metric/internal/util/fgzip"
@@ -27,11 +30,11 @@ const metricsLimit = 1024
 //const timeOutForSending = time.Second
 
 type worker struct {
-	client  *http.Client
-	address string
-	hashKey string
-	crypt   *crypt.Crypt
-	logger  *log.Logger
+	client *http.Client
+	gRPC   *grpcclient.Client
+	cfg    *commands.Config
+	crypt  *crypt.Crypt
+	logger *log.Logger
 }
 
 type workers struct {
@@ -39,30 +42,52 @@ type workers struct {
 	workers []worker
 }
 
-func NewWorker(address, hashKey string, id int, crypt *crypt.Crypt) *worker {
+func NewWorker(cfg *commands.Config, id int, crypt *crypt.Crypt) (*worker, error) {
 	name := fmt.Sprintf("worker %d ", id)
-	return &worker{
-		client:  &http.Client{},
-		address: address,
-		hashKey: hashKey,
-		logger:  logger.NewLogger(name, log.LstdFlags|log.Lshortfile),
-		crypt:   crypt,
+	if !cfg.GRPC {
+		return &worker{
+			client: &http.Client{},
+			cfg:    cfg,
+			logger: logger.NewLogger(name, log.LstdFlags|log.Lshortfile),
+			crypt:  crypt,
+		}, nil
 	}
+	client, err := grpcclient.NewClient(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return &worker{
+		gRPC:   client,
+		cfg:    cfg,
+		logger: logger.NewLogger(name, log.LstdFlags|log.Lshortfile),
+	}, nil
+
+}
+func (w *worker) Close() error {
+	if w.gRPC != nil {
+		return w.gRPC.Close()
+	}
+	return nil
 }
 
 func (w *worker) start(ctx context.Context, inCh, reuseCh chan []metrics.Metrics, free *int32, wg *sync.WaitGroup) {
 	defer wg.Done()
 	w.logger.Println("Start")
 	atomic.AddInt32(free, 1)
+	var (
+		send int
+		err  error
+	)
 	for {
 		select {
 		case newM := <-inCh:
 			w.logger.Printf("Get %d metrics", len(newM))
 			atomic.AddInt32(free, -1)
-			//			ctx, cancel := context.WithTimeout(context.Background(), timeOutForSending)
-			//			defer cancel()
-			//			send, err := w.Send(ctx, newM)
-			send, err := w.Send(context.Background(), newM)
+			if w.gRPC != nil {
+				send, err = w.SendGRPC(context.Background(), newM)
+			} else {
+				send, err = w.Send(context.Background(), newM)
+			}
 			if err != nil {
 				w.logger.Printf("Error : %v", err)
 			}
@@ -74,7 +99,11 @@ func (w *worker) start(ctx context.Context, inCh, reuseCh chan []metrics.Metrics
 			atomic.AddInt32(free, 1)
 			w.logger.Println("Work compleate")
 		case <-ctx.Done():
-			w.logger.Println("Finished")
+			if err = w.Close(); err != nil {
+				w.logger.Printf("Finished with %v", err)
+			} else {
+				w.logger.Println("Finished normal")
+			}
 			atomic.AddInt32(free, 1)
 			return
 		}
@@ -97,14 +126,35 @@ func PrepareDataForMetric(m metrics.Metrics, hashKey string, crypt *crypt.Crypt)
 	return data, nil
 }
 
+func (w *worker) SendGRPC(ctx context.Context, sM []metrics.Metrics) (int, error) {
+	op := "SendGRPC: "
+	if w.cfg.HashKey != "" {
+		for i, m := range sM {
+			if err := sM[i].SetHash(w.cfg.HashKey); err != nil {
+				return 0, fmt.Errorf("%s for metric %v failed: %v", op, m, err)
+			}
+		}
+	}
+	for i, m := range sM {
+		_, err := w.gRPC.C.AddMetric(
+			ctx,
+			&pb.AddMetricRequest{Metric: m.ToProto()},
+		)
+		if err != nil {
+			return i, fmt.Errorf("%s for metric %v failed: %v", op, m, err)
+		}
+	}
+	return len(sM), nil
+}
+
 func (w *worker) Send(ctx context.Context, sM []metrics.Metrics) (int, error) {
 	endpoint := url.URL{
 		Scheme: "http",
-		Host:   w.address,
+		Host:   w.cfg.Address,
 		Path:   "/update/",
 	}
 	for i, m := range sM {
-		data, err := PrepareDataForMetric(m, w.hashKey, w.crypt)
+		data, err := PrepareDataForMetric(m, w.cfg.HashKey, w.crypt)
 		if err != nil {
 			w.logger.Printf("ERROR : PrepareDataForMetric %v failed with %v\n", m, err)
 			return i, err
@@ -120,7 +170,6 @@ func (w *worker) Send(ctx context.Context, sM []metrics.Metrics) (int, error) {
 			w.logger.Printf("ERROR : SendMetric(JSON):c.client.Do(request) error %v\n", err)
 			return i, err
 		}
-		//		defer response.Body.Close()
 		body, err := io.ReadAll(response.Body)
 		if err != nil {
 			w.logger.Printf("ERROR : SendMetric(JSON):io.ReadAll error %v\n", err)
@@ -157,7 +206,11 @@ func StartAgent(ctx context.Context, cmd *commands.Config, complete chan struct{
 	wg := &sync.WaitGroup{}
 
 	for i := 0; i < cmd.RateLimit; i++ {
-		w.workers = append(w.workers, *NewWorker(cmd.Address, cmd.HashKey, i, cr))
+		newWorker, err := NewWorker(cmd, i, cr)
+		if err != nil {
+			lgr.Fatalf("StartAgent failed: %v", err)
+		}
+		w.workers = append(w.workers, *newWorker)
 		wg.Add(1)
 		go w.workers[i].start(wctx, chOut, chIn, &w.free, wg)
 	}

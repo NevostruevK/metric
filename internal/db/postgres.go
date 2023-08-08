@@ -316,3 +316,7 @@ func (db DB) Ping() error {
 	}
 	return nil
 }
+
+func (db DB) SaveAllIntoFile() (int, error) {
+	return 0, nil
+}

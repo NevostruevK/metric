@@ -19,13 +19,13 @@ func ExampleGetMetricHandler() {
 	ts := httptest.NewServer(r)
 	defer ts.Close()
 
-	Request(ts, "POST", "/update/gauge/exampleGauge/1.2345", nil)
-	Request(ts, "POST", "/update/counter/exampleCounter/12345", nil)
+	Request(ts, "POST", "/update/gauge/exampleGauge/1.2345", nil, nil)
+	Request(ts, "POST", "/update/counter/exampleCounter/12345", nil, nil)
 
-	code, body := Request(ts, "GET", "/value/gauge/exampleGauge", nil)
+	code, body := Request(ts, "GET", "/value/gauge/exampleGauge", nil, nil)
 	fmt.Printf("%d : %s", code, string(body))
 
-	code, body = Request(ts, "GET", "/value/counter/exampleCounter", nil)
+	code, body = Request(ts, "GET", "/value/counter/exampleCounter", nil, nil)
 	fmt.Printf("%d : %s", code, string(body))
 
 	// Output:

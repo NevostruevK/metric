@@ -48,7 +48,7 @@ func TestCrypt(t *testing.T) {
 		ts := httptest.NewServer(handler)
 		defer ts.Close()
 
-		code, _ := Request(ts, "POST", "/update/", data)
+		code, _ := Request(ts, "POST", "/update/", data, nil)
 		assert.Equal(t, http.StatusOK, code)
 		ts.Close()
 	})
@@ -63,7 +63,7 @@ func TestCrypt(t *testing.T) {
 		ts := httptest.NewServer(handler)
 		defer ts.Close()
 
-		code, _ := Request(ts, "POST", "/update/", data)
+		code, _ := Request(ts, "POST", "/update/", data, nil)
 		assert.Equal(t, http.StatusBadRequest, code)
 		ts.Close()
 	})
@@ -78,7 +78,7 @@ func TestCrypt(t *testing.T) {
 		ts := httptest.NewServer(handler)
 		defer ts.Close()
 
-		code, _ := Request(ts, "POST", "/update/", data)
+		code, _ := Request(ts, "POST", "/update/", data, nil)
 		assert.Equal(t, http.StatusBadRequest, code)
 		ts.Close()
 	})
@@ -92,7 +92,7 @@ func TestCrypt(t *testing.T) {
 		ts := httptest.NewServer(handler)
 		defer ts.Close()
 
-		code, _ := Request(ts, "POST", "/update/", data)
+		code, _ := Request(ts, "POST", "/update/", data, nil)
 		assert.Equal(t, http.StatusOK, code)
 		ts.Close()
 	})

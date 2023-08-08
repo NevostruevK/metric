@@ -3,5 +3,7 @@
   "report_interval": "1s",
   "poll_interval": "1s",
   "crypto_key": "public.pem",
-  "rate_limit": 4
+  "rate_limit": 4,
+  "certificate": "server.crt",
+  "grpc": true
 }
