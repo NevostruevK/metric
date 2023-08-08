@@ -19,13 +19,17 @@ const (
 	hashKey                    = "secretKeyForBenchmarking"
 )
 
-func Request(ts *httptest.Server, method, path string, data []byte) (int, []byte) {
+func Request(ts *httptest.Server, method, path string, data []byte, headers map[string]string) (int, []byte) {
 	req, err := http.NewRequest(method, ts.URL+path, bytes.NewBuffer(data))
 	if err != nil {
 		panic(err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -90,19 +94,19 @@ func BenchmarkRouter(b *testing.B) {
 
 		b.StartTimer()
 
-		if code, _ := Request(ts, "POST", "/updates/", data); code != http.StatusOK {
+		if code, _ := Request(ts, "POST", "/updates/", data, nil); code != http.StatusOK {
 			panic("/updates/")
 		}
-		if code, _ := Request(ts, "POST", "/update/", dataGauge); code != http.StatusOK {
+		if code, _ := Request(ts, "POST", "/update/", dataGauge, nil); code != http.StatusOK {
 			panic("/update/")
 		}
-		if code, _ := Request(ts, "POST", "/update/", dataCounter); code != http.StatusOK {
+		if code, _ := Request(ts, "POST", "/update/", dataCounter, nil); code != http.StatusOK {
 			panic("/update/")
 		}
-		if code, _ := Request(ts, "POST", "/value/", dataGauge); code != http.StatusOK {
+		if code, _ := Request(ts, "POST", "/value/", dataGauge, nil); code != http.StatusOK {
 			panic("/value/")
 		}
-		if code, _ := Request(ts, "POST", "/value/", dataCounter); code != http.StatusOK {
+		if code, _ := Request(ts, "POST", "/value/", dataCounter, nil); code != http.StatusOK {
 			panic("/value/")
 		}
 	}

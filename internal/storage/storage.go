@@ -45,6 +45,10 @@ type Repository interface {
 	AddGroupOfMetrics(ctx context.Context, sM []metrics.Metrics) error
 	// Ping проверка коннекта к Storage.
 	Ping() error
+	// Close освобождение ресурсов
+	Close(context.Context) error
+	// SaveAllIntoFile сохранение данных в файл
+	SaveAllIntoFile() (int, error)
 }
 
 // MemStorage структура для хранения метрик в памяти.
@@ -218,4 +222,16 @@ func (s *MemStorage) ShowMetrics(context.Context) {
 	for name, i := range s.Int {
 		lgr.Println(metrics.NewJSONCounterMetric(name, i))
 	}
+}
+
+func PrepareMetricsForStorage(sM []metrics.Metrics) ([]metrics.Metrics, error) {
+	st := NewMemStorage(false, false, "")
+	if err := st.AddGroupOfMetrics(context.Background(), sM); err != nil {
+		return nil, err
+	}
+	pM, err := st.GetAllMetrics(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	return pM, nil
 }

@@ -23,9 +23,12 @@ const (
 	defHashKey        = ""
 	defDataBaseDSN    = ""
 	defCryptoKey      = ""
+	defCertificate    = ""
+	defTrustedSubnet  = ""
 	defCongig         = ""
 	defRateLimit      = 1
 	defRestore        = true
+	defGRPC           = false
 )
 
 const (
@@ -37,9 +40,12 @@ const (
 	usgHashKey        = "key for signing metrics"
 	usgDataBaseDSN    = "dsn"
 	usgCryptoKey      = "path to private/public key"
+	usgCertificate    = "path to TLS certificate"
+	usgTrustedSubnet  = "sub net in CIDR format"
 	usgCongig         = "path to config file"
 	usgRateLimit      = "requests count"
 	usgRestore        = "restore value"
+	usgGRPC           = "set true to use gRPC"
 )
 
 const (
@@ -51,10 +57,13 @@ const (
 	flgHashKey        = "k"
 	flgDataBaseDSN    = "d"
 	flgCryptoKey      = "crypto-key"
+	flgCertificate    = "certificate"
+	flgTrustedSubnet  = "t"
 	flgConfig         = "config"
 	flgConfigShort    = "c"
 	flgRateLimit      = "l"
 	flgRestore        = "r"
+	flgGRPC           = "grpc"
 )
 
 type Environment struct {
@@ -66,9 +75,11 @@ type Environment struct {
 	HashKey        string        `env:"KEY" envDefault:""`
 	DataBaseDSN    string        `env:"DATABASE_DSN" envDefault:""`
 	CryptoKey      string        `env:"CRYPTO_KEY" envDefault:""`
-	//	Config         string        `env:"CONFIG" envDefault:""`
-	RateLimit int  `env:"RATE_LIMIT" envDefault:"1"`
-	Restore   bool `env:"RESTORE" envDefault:"true"`
+	Certoificate   string        `env:"CERTIFICATE" envDefault:""`
+	TrustedSubnet  string        `env:"TRUSTED_SUBNET" envDefault:""`
+	RateLimit      int           `env:"RATE_LIMIT" envDefault:"1"`
+	Restore        bool          `env:"RESTORE" envDefault:"true"`
+	GRPC           bool          `env:"GRPC" envDefault:"false"`
 }
 
 func GetAgentConfig() *Config {
@@ -78,7 +89,9 @@ func GetAgentConfig() *Config {
 		address        = flag.String(flgAddress, defAddress, usgAddress)
 		hashKey        = flag.String(flgHashKey, defHashKey, usgHashKey)
 		cryptoKey      = flag.String(flgCryptoKey, defCryptoKey, usgCryptoKey)
+		certificate    = flag.String(flgCertificate, defCertificate, usgCertificate)
 		rateLimit      = flag.Int(flgRateLimit, defRateLimit, usgRateLimit)
+		gRPC           = flag.Bool(flgGRPC, defGRPC, usgGRPC)
 		config         = getFlagConfigValue()
 	)
 	flag.Parse()
@@ -93,28 +106,37 @@ func GetAgentConfig() *Config {
 	fmt.Println(c)
 
 	if value, ok := selectString("ADDRESS", "", *address); ok {
-		c.setOption(withAddress(value))
+		c.SetOption(WithAddress(value))
 	}
 
 	if value, ok := selectString("KEY", "", *hashKey); ok {
-		c.setOption(withHashKey(value))
+		c.SetOption(WithHashKey(value))
 	}
 
 	if value, ok := selectString("CRYPTO_KEY", "", *cryptoKey); ok {
-		c.setOption(withCryptoKey(value))
+		c.SetOption(WithCryptoKey(value))
+	}
+
+	if value, ok := selectString("CERTIFICATE", "", *certificate); ok {
+		c.SetOption(WithCertificate(value))
 	}
 
 	if value, ok := selectDuration("REPORT_INTERVAL", time.Duration(0), e.ReportInterval, *reportInterval); ok {
-		c.setOption(withReportInterval(duration.NewDuration(value)))
+		c.SetOption(WithReportInterval(duration.NewDuration(value)))
 	}
 
 	if value, ok := selectDuration("POOL_INTERVAL", time.Duration(0), e.PollInterval, *pollInterval); ok {
-		c.setOption(withPollInterval(duration.NewDuration(value)))
+		c.SetOption(WithPollInterval(duration.NewDuration(value)))
 	}
 
 	if value, ok := selectInt("RATE_LIMIT", 0, e.RateLimit, *rateLimit); ok {
-		c.setOption(withRateLimit(value))
+		c.SetOption(WithRateLimit(value))
 	}
+
+	if value, ok := selectBool("GRPC", defGRPC, e.GRPC, *gRPC); ok {
+		c.SetOption(WithGRPC(value))
+	}
+
 	if c.RateLimit == 0 {
 		c.RateLimit = 1
 	}
@@ -132,7 +154,10 @@ func GetServerConfig() *Config {
 		hashKey       = flag.String(flgHashKey, defHashKey, usgHashKey)
 		dataBaseDSN   = flag.String(flgDataBaseDSN, defDataBaseDSN, usgDataBaseDSN)
 		cryptoKey     = flag.String(flgCryptoKey, defCryptoKey, usgCryptoKey)
+		certificate   = flag.String(flgCertificate, defCertificate, usgCertificate)
+		trustedSubnet = flag.String(flgTrustedSubnet, defTrustedSubnet, usgTrustedSubnet)
 		restore       = flag.Bool(flgRestore, defRestore, usgRestore)
+		gRPC          = flag.Bool(flgGRPC, defGRPC, usgGRPC)
 		config        = getFlagConfigValue()
 	)
 	flag.Parse()
@@ -146,31 +171,43 @@ func GetServerConfig() *Config {
 	c.ReadConfig(getConfigPath("CONFIG", *config))
 
 	if value, ok := selectDuration("STORE_INTERVAL", time.Duration(0), e.StoreInterval, *storeInterval); ok {
-		c.setOption(withStoreInterval(duration.NewDuration(value)))
+		c.SetOption(WithStoreInterval(duration.NewDuration(value)))
 	}
 
 	if value, ok := selectString("ADDRESS", "", *address); ok {
-		c.setOption(withAddress(value))
+		c.SetOption(WithAddress(value))
 	}
 
 	if value, ok := selectString("STORE_FILE", "", *storeFile); ok {
-		c.setOption(withStoreFile(value))
+		c.SetOption(WithStoreFile(value))
 	}
 
 	if value, ok := selectString("KEY", "", *hashKey); ok {
-		c.setOption(withHashKey(value))
+		c.SetOption(WithHashKey(value))
 	}
 
 	if value, ok := selectString("DATABASE_DSN", "", *dataBaseDSN); ok {
-		c.setOption(withDataBaseDSN(value))
+		c.SetOption(WithDataBaseDSN(value))
 	}
 
 	if value, ok := selectString("CRYPTO_KEY", "", *cryptoKey); ok {
-		c.setOption(withCryptoKey(value))
+		c.SetOption(WithCryptoKey(value))
+	}
+
+	if value, ok := selectString("CERTIFICATE", "", *certificate); ok {
+		c.SetOption(WithCertificate(value))
+	}
+
+	if value, ok := selectString("TRUSTED_SUBNET", "", *trustedSubnet); ok {
+		c.SetOption(WithTrustedSubnet(value))
 	}
 
 	if value, ok := selectBool("RESTORE", defRestore, e.Restore, *restore); ok {
-		c.setOption(withRestore(value))
+		c.SetOption(WithRestore(value))
+	}
+
+	if value, ok := selectBool("GRPC", defGRPC, e.GRPC, *gRPC); ok {
+		c.SetOption(WithGRPC(value))
 	}
 	return c
 }
